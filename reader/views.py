@@ -570,25 +570,22 @@ def ask_book(request):
                 
             prompt = f"You are a helpful and intelligent reading tutor. The user is reading a book (which might be in Hindi, English, or Hinglish) and is asking a question about the current page.\n\nCurrent Page Text:\n{page_text}\n\nUser Question: {question}\n\nCRITICAL INSTRUCTIONS:\n1. Answer the question concisely and clearly based on the page text.\n2. ALWAYS reply in the exact language the user used in their question! If they ask in 'Hinglish' (e.g., 'hinglish me batao', 'kya ho raha hai'), you MUST reply in Hinglish! If they ask in Hindi, reply in Hindi.\n3. Do NOT say 'the text is in English'. Just explain what is happening."
             
-            try:
-                GROQ_API_KEY = os.getenv('GROQ_API_KEY')
-                if not GROQ_API_KEY:
-                    return JsonResponse({'error': 'GROQ API key not configured'}, status=500)
-                
-                from groq import Groq
-                client = Groq(api_key=GROQ_API_KEY)
-                
-                completion = client.chat.completions.create(
-                    model="llama3-8b-8192",
-                    messages=[{"role": "user", "content": prompt}],
-                    max_tokens=500,
-                    temperature=0.7
-                )
-                
-                answer = completion.choices[0].message.content
-                return JsonResponse({'answer': answer})
-
+            GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+            if not GROQ_API_KEY:
+                return JsonResponse({'error': 'GROQ API key not configured'}, status=500)
             
+            from groq import Groq
+            client = Groq(api_key=GROQ_API_KEY)
+            
+            completion = client.chat.completions.create(
+                model="llama3-8b-8192",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=500,
+                temperature=0.7
+            )
+            
+            answer = completion.choices[0].message.content
+            return JsonResponse({'answer': answer})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
