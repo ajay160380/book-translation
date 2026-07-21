@@ -51,9 +51,10 @@ def dashboard(request):
             form = BookForm(request.POST, request.FILES)
             if form.is_valid():
                 title = form.cleaned_data.get('title')
-                if Book.objects.filter(title__iexact=title, user=request.user).exists():
-                    error = f"A book named '{title}' already exists in your library!"
-                    ErrorLog.objects.create(action="Dashboard Upload Duplicate", error_message=error, user_info=request.user.username)
+                existing_book = Book.objects.filter(title__iexact=title, user=request.user).first()
+                if existing_book:
+                    ErrorLog.objects.create(action="Dashboard Upload Duplicate", error_message="Redirecting to existing book", user_info=request.user.username)
+                    return redirect('reader_view', book_id=existing_book.id)
                 else:
                     new_book = form.save(commit=False)
                     new_book.user = request.user
