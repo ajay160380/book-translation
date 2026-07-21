@@ -1,0 +1,16 @@
+Django>=4.2
+deep-translator>=1.11.4
+requests>=2.31.0
+python-dotenv>=1.0.1
+gunicorn==25.1.0
+g4f
+gtts
+groq
+sumy
+nltk
+dj-database-url
+psycopg2-binary
+django-allauth[socialaccount]
+PyJWT
+cryptography
+google-generativeai

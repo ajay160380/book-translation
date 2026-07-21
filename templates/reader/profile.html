@@ -1,0 +1,204 @@
+{% extends "reader/dashboard.html" %}
+
+{% block content %}
+<style>
+    .profile-container {
+        padding: 60px 40px;
+        max-width: 900px;
+        margin: 0 auto;
+    }
+    .profile-header {
+        display: flex;
+        align-items: center;
+        gap: 24px;
+        margin-bottom: 48px;
+    }
+    .profile-avatar {
+        width: 80px;
+        height: 80px;
+        border-radius: 50%;
+        background: var(--fg);
+        color: var(--bg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-family: var(--ff-display);
+        font-size: 32px;
+        font-weight: 700;
+    }
+    .profile-name {
+        font-family: var(--ff-display);
+        font-size: 32px;
+        font-weight: 700;
+        margin-bottom: 4px;
+    }
+    .profile-email {
+        color: var(--gray-1);
+        font-size: 15px;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 24px;
+        margin-bottom: 48px;
+    }
+    .stat-card {
+        background: var(--bg);
+        border: 1px solid var(--border-dark);
+        border-radius: 12px;
+        padding: 24px;
+        text-align: center;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    body.dark-mode .stat-card {
+        background: #1e1e1e;
+        border-color: #333;
+    }
+    .stat-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+    }
+    body.dark-mode .stat-card:hover {
+        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
+    }
+    .stat-value {
+        font-family: var(--ff-display);
+        font-size: 48px;
+        font-weight: 700;
+        margin-bottom: 8px;
+        line-height: 1;
+    }
+    .stat-label {
+        font-size: 12px;
+        text-transform: uppercase;
+        letter-spacing: 0.1em;
+        color: var(--gray-1);
+    }
+
+    /* Form Area */
+    .profile-form-section {
+        background: var(--bg);
+        border: 1px solid var(--border-dark);
+        border-radius: 12px;
+        padding: 40px;
+    }
+    body.dark-mode .profile-form-section {
+        background: #1e1e1e;
+        border-color: #333;
+    }
+    .section-title {
+        font-family: var(--ff-display);
+        font-size: 20px;
+        font-weight: 600;
+        margin-bottom: 24px;
+        padding-bottom: 16px;
+        border-bottom: 1px solid var(--border-dark);
+    }
+    body.dark-mode .section-title {
+        border-color: #333;
+    }
+    
+    .onboarding-form { text-align: left; }
+    .form-row {
+        display: flex;
+        gap: 24px;
+        margin-bottom: 24px;
+    }
+    .form-group { flex: 1; }
+    .form-group label {
+        display: block;
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: var(--gray-2);
+        margin-bottom: 8px;
+    }
+    .onboarding-form input,
+    .onboarding-form textarea,
+    .onboarding-form select {
+        width: 100%;
+        padding: 14px 16px;
+        border: 1px solid rgba(30, 30, 30, 0.15);
+        background: transparent;
+        font-family: var(--ff-body);
+        font-size: 15px;
+        color: var(--fg);
+        outline: none;
+        border-radius: 8px;
+        transition: border-color 300ms ease;
+    }
+    body.dark-mode .onboarding-form input,
+    body.dark-mode .onboarding-form textarea,
+    body.dark-mode .onboarding-form select {
+        border-color: #444;
+        background: #121212;
+    }
+    .onboarding-form input:focus,
+    .onboarding-form textarea:focus,
+    .onboarding-form select:focus {
+        border-color: var(--fg);
+    }
+</style>
+
+<div class="profile-container anim-stagger">
+    <div class="profile-header">
+        <div class="profile-avatar">
+            {{ user.first_name|default:user.username|make_list|first|upper }}
+        </div>
+        <div>
+            <div class="profile-name">{{ user.first_name }} {{ user.last_name }}</div>
+            <div class="profile-email">{{ user.email }}</div>
+        </div>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.total_books }}</div>
+            <div class="stat-label">Books Uploaded</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.total_pages_translated }}</div>
+            <div class="stat-label">Pages Translated</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-value">{{ stats.vocab_saved }}</div>
+            <div class="stat-label">Words Saved</div>
+        </div>
+    </div>
+
+    <div class="profile-form-section">
+        <h3 class="section-title">Edit Profile</h3>
+        <form method="POST" class="onboarding-form">
+            {% csrf_token %}
+            
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="{{ form.first_name.id_for_label }}">First Name</label>
+                    {{ form.first_name }}
+                    {% if form.first_name.errors %}<div style="color: #e74c3c; font-size: 12px; margin-top: 4px;">{{ form.first_name.errors }}</div>{% endif %}
+                </div>
+                <div class="form-group">
+                    <label for="{{ form.last_name.id_for_label }}">Last Name</label>
+                    {{ form.last_name }}
+                </div>
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="{{ form.preferred_language.id_for_label }}">Translation Style Preference</label>
+                {{ form.preferred_language }}
+            </div>
+
+            <div class="form-group" style="margin-bottom: 24px;">
+                <label for="{{ form.bio.id_for_label }}">Bio</label>
+                {{ form.bio }}
+            </div>
+
+            <button type="submit" class="btn-pill btn-pill-filled" style="padding: 12px 32px; font-size: 14px;">
+                Save Changes
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}

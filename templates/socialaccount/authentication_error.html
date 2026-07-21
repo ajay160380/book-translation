@@ -1,0 +1,10 @@
+{% extends "reader/dashboard.html" %}
+{% block content %}
+<div style="padding: 50px; text-align: center;">
+    <h1>Login Failed</h1>
+    <p>There was an error logging in.</p>
+    <p><strong>Auth Error Variable:</strong> {{ auth_error }}</p>
+    <p><strong>Auth Exception:</strong> {{ auth_error.exception }}</p>
+    <p><strong>Auth Error Code:</strong> {{ auth_error.code }}</p>
+</div>
+{% endblock %}

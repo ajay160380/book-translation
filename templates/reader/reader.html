@@ -1,0 +1,1479 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Reading: {{ book.title }} — Anuvad.ai</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+
+    <!-- Fonts -->
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700&f[]=satoshi@500,700&display=swap"
+        rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@1,400;1,600&display=swap"
+        rel="stylesheet">
+
+    <style>
+        :root {
+            --bg: #f2f2f2;
+            --fg: #111111;
+            --gray-1: #838282;
+            --gray-2: #b6b5b5;
+            --border-dark: #1e1e1e;
+            --ff-display: 'Clash Display', 'Inter', sans-serif;
+            --ff-body: 'Satoshi', 'Inter', sans-serif;
+            --ff-serif: 'Playfair Display', Georgia, serif;
+            --ease: cubic-bezier(0.77, 0, 0.175, 1);
+        }
+
+        body.dark-mode {
+            --bg: #111111;
+            --fg: #f2f2f2;
+            --border-dark: rgba(255, 255, 255, 0.2);
+            --gray-1: #b6b5b5;
+            --gray-2: #838282;
+        }
+
+        *,
+        *::before,
+        *::after {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--ff-body);
+            font-weight: 500;
+            background: var(--bg);
+            color: var(--fg);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .top-bar {
+            height: 80px;
+            background: rgba(242, 242, 242, 0.9);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-bottom: 1px solid rgba(30, 30, 30, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 clamp(20px, 4vw, 48px);
+            flex-shrink: 0;
+            z-index: 100;
+        }
+
+        body.dark-mode .top-bar {
+            background: rgba(17, 17, 17, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .back-link {
+            font-family: var(--ff-body);
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--gray-1);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: color 200ms ease;
+            width: 240px;
+        }
+
+        .back-link:hover {
+            color: var(--fg);
+        }
+
+        .back-link svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* Page Nav (Centered) */
+        .page-nav {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            flex: 1;
+            justify-content: center;
+        }
+
+        .page-nav button {
+            font-family: var(--ff-body);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border: 1px solid var(--border-dark);
+            border-radius: 999px;
+            padding: 10px 24px;
+            background: transparent;
+            color: var(--fg);
+            cursor: pointer;
+            transition: all 400ms var(--ease);
+        }
+
+        .page-nav button:hover {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        .page-nav button:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
+        }
+
+        .page-input {
+            width: 48px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--fg);
+            border: 1px solid var(--border-dark);
+            border-radius: 6px;
+            text-align: center;
+            font-size: 13px;
+            font-family: inherit;
+            padding: 4px 0;
+            transition: all 0.2s;
+            outline: none;
+        }
+
+        .page-input:focus {
+            border-color: #6366f1;
+            background: rgba(99, 102, 241, 0.1);
+        }
+
+        /* Hide spin buttons for input type number */
+        .page-input::-webkit-outer-spin-button,
+        .page-input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        .page-input[type=number] {
+            -moz-appearance: textfield;
+        }
+
+        .page-info {
+            font-size: 14px;
+            color: var(--gray-1);
+            letter-spacing: 0.02em;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        .page-info strong {
+            color: var(--fg);
+            font-weight: 700;
+        }
+
+        /* ── Language Toggle (Right) ── */
+        .top-right {
+            display: flex;
+            justify-content: flex-end;
+            min-width: 240px;
+        }
+
+        .lang-toggle {
+            display: flex;
+            border: 1px solid var(--border-dark);
+            border-radius: 999px;
+            overflow: hidden;
+            height: 38px;
+        }
+
+        .lang-toggle button {
+            font-family: var(--ff-body);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border: none;
+            padding: 0 22px;
+            cursor: pointer;
+            background: transparent;
+            color: var(--gray-1);
+            transition: background 400ms var(--ease), color 400ms var(--ease);
+        }
+
+        .lang-toggle button.active {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        /* ── Split Screen ── */
+        .reader-split {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        body.dark-mode .reader-split {
+            background: #1a1a1a;
+        }
+
+        .left-pane,
+        .right-pane {
+            width: 50%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Left: PDF */
+        .left-pane {
+            border-right: 1px solid rgba(30, 30, 30, 0.04);
+            background: var(--bg);
+        }
+
+        .pdf-container {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 40px;
+        }
+
+        .pdf-container canvas {
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.06);
+            border-radius: 4px;
+        }
+
+        body.dark-mode .pdf-container canvas {
+            filter: invert(0.88) hue-rotate(180deg) contrast(1.1);
+            box-shadow: 0 12px 48px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Right: Translation */
+        .right-pane {
+            background: #fff;
+            overflow-y: auto;
+        }
+
+        body.dark-mode .right-pane {
+            background: #1a1a1a;
+        }
+
+        .right-header {
+            padding: 32px 48px 16px;
+            border-bottom: 1px solid rgba(30, 30, 30, 0.04);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.9);
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            backdrop-filter: blur(8px);
+        }
+
+        body.dark-mode .right-header {
+            background: rgba(26, 26, 26, 0.9);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+        }
+
+        .right-header-title {
+            font-family: var(--ff-display);
+            font-weight: 700;
+            font-size: 24px;
+            letter-spacing: -0.03em;
+        }
+
+        .btn-speak {
+            font-family: var(--ff-body);
+            font-size: 13px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            background: transparent;
+            color: var(--fg);
+            border: 1px solid var(--border-dark);
+            border-radius: 999px;
+            padding: 6px 16px;
+            cursor: pointer;
+            transition: all 400ms var(--ease);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-speak:hover {
+            background: var(--fg);
+            color: var(--bg);
+        }
+
+        .lang-badge {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--bg);
+            background: var(--fg);
+            padding: 6px 16px;
+            border-radius: 999px;
+        }
+
+        .translation-content {
+            padding: 32px 48px 80px;
+            font-size: 17px;
+            line-height: 1.85;
+            color: #222;
+            white-space: pre-wrap;
+            /* Crucial for rendering line breaks properly */
+        }
+
+        body.dark-mode .translation-content {
+            color: #e0e0e0;
+        }
+
+        .summary-box {
+            position: fixed;
+            top: 0;
+            right: 0;
+            width: 380px;
+            max-width: 90vw;
+            height: 100vh;
+            background: #fff;
+            box-shadow: -5px 0 30px rgba(0, 0, 0, 0.1);
+            z-index: 1000;
+            padding: 32px;
+            transform: translateX(100%);
+            transition: transform 400ms var(--ease);
+            overflow-y: auto;
+            border-left: 1px solid var(--border-dark);
+            display: block !important;
+        }
+
+        .summary-box.open {
+            transform: translateX(0);
+        }
+
+        body.dark-mode .summary-box {
+            background: #1a1a1a;
+            box-shadow: -5px 0 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .summary-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+            padding-bottom: 16px;
+            border-bottom: 1px solid var(--border-dark);
+        }
+
+        .summary-title {
+            font-size: 14px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--fg);
+        }
+
+        .summary-close {
+            background: none;
+            border: none;
+            font-size: 24px;
+            line-height: 1;
+            color: var(--fg);
+            cursor: pointer;
+        }
+
+        .summary-text-content {
+            font-size: 15px;
+            line-height: 1.7;
+            color: var(--gray-1);
+            white-space: pre-wrap;
+        }
+
+        body.dark-mode .summary-text-content {
+            color: #ccc;
+        }
+
+        /* Loader */
+        .loader-container {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            flex: 1;
+            padding: 80px;
+        }
+
+        .loader-container.show {
+            display: flex;
+        }
+
+        .spinner {
+            width: 44px;
+            height: 44px;
+            border: 3px solid rgba(30, 30, 30, 0.08);
+            border-top-color: var(--fg);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin-bottom: 24px;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loader-text {
+            font-size: 14px;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--gray-2);
+            font-weight: 700;
+        }
+
+        .error-text {
+            color: #c0392b;
+            font-weight: 500;
+        }
+
+        /* Normal Mode Layout */
+        .reader-split.normal-mode .right-pane {
+            display: none;
+        }
+
+        .reader-split.normal-mode .left-pane {
+            width: 100%;
+            border-right: none;
+        }
+
+        /* ── Top Bar Transition ── */
+        .top-bar {
+            transition: transform 0.3s ease;
+        }
+
+        /* ── Mobile Layout ── */
+        .mobile-bottom-bar {
+            display: none;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                overflow-x: hidden;
+            }
+            .reader-split {
+                display: block;
+                padding-top: env(safe-area-inset-top);
+                padding-bottom: env(safe-area-inset-bottom);
+            }
+
+            .left-pane,
+            .right-pane {
+                width: 100vw;
+                height: 100dvh;
+                border: none;
+            }
+
+            /* Hide inactive pane */
+            .left-pane.mobile-hidden,
+            .right-pane.mobile-hidden {
+                display: none !important;
+            }
+
+            .pdf-container {
+                padding: 12px;
+            }
+            .translation-content {
+                padding: 12px;
+                font-size: 16px;
+            }
+            .right-header {
+                padding: 12px;
+            }
+
+            .back-link span {
+                display: none;
+            }
+            .back-link {
+                width: auto;
+            }
+            .top-right {
+                width: auto;
+            }
+
+            /* Sticky Bottom Bar */
+            .mobile-bottom-bar {
+                display: flex;
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                width: 100%;
+                background: #f2f2f2;
+                border-top: 2px solid #111111;
+                padding-bottom: env(safe-area-inset-bottom);
+                z-index: 9999;
+            }
+            body.dark-mode .mobile-bottom-bar {
+                background: #111111;
+                border-top: 2px solid rgba(255,255,255,0.2);
+            }
+            .mobile-bottom-bar button {
+                flex: 1;
+                padding: 16px 0;
+                font-family: var(--ff-body);
+                font-size: 12px;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.1em;
+                background: transparent;
+                border: none;
+                border-right: 1px solid var(--border-dark);
+                color: var(--gray-1);
+            }
+            .mobile-bottom-bar button:last-child {
+                border-right: none;
+            }
+            .mobile-bottom-bar button.active {
+                color: var(--fg);
+                background: rgba(0,0,0,0.05);
+            }
+            body.dark-mode .mobile-bottom-bar button.active {
+                background: rgba(255,255,255,0.05);
+            }
+        }
+    
+
+        /* ── Ask The Book Chat Drawer ── */
+        .chat-drawer {
+            position: fixed; top: 0; right: -400px; width: 400px; height: 100vh;
+            background: #f2f2f2; border-left: 2px solid #111;
+            box-shadow: -10px 0 30px rgba(0,0,0,0.1);
+            transition: right 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1000; display: flex; flex-direction: column;
+        }
+        .chat-drawer.open { right: 0; }
+        .chat-header {
+            padding: 20px; border-bottom: 2px solid #111; background: #fff;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .chat-header h3 { font-family: var(--ff-display); font-size: 20px; text-transform: uppercase; margin: 0; }
+        .btn-close-chat { background: none; border: none; font-size: 24px; cursor: pointer; color: #111; }
+        
+        .chat-messages {
+            flex: 1; padding: 20px; overflow-y: auto; display: flex; flex-direction: column; gap: 16px;
+        }
+        .msg { padding: 12px 16px; border-radius: 8px; max-width: 85%; font-size: 15px; line-height: 1.5; }
+        .msg.user { background: #111; color: #fff; align-self: flex-end; border-bottom-right-radius: 0; }
+        .msg.ai { background: #e0e0e0; color: #111; align-self: flex-start; border-bottom-left-radius: 0; }
+        
+        .chat-input-area {
+            padding: 20px; border-top: 2px solid #111; background: #fff;
+            display: flex; gap: 10px;
+        }
+        .chat-input {
+            flex: 1; padding: 12px; border: 2px solid #111; font-family: var(--ff-body); font-size: 14px;
+            outline: none; border-radius: 0;
+        }
+        .chat-input:focus { background: #f9f9f9; }
+        .btn-send {
+            padding: 0 20px; background: #111; color: #fff; border: none; font-weight: bold; cursor: pointer; text-transform: uppercase;
+        }
+        
+        .btn-ask-floating {
+            position: fixed; bottom: 30px; right: 30px;
+            background: #111; color: #fff; padding: 16px 24px; border-radius: 999px;
+            font-family: var(--ff-display); font-weight: bold; text-transform: uppercase;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2); cursor: pointer; border: none; z-index: 999;
+            transition: transform 0.3s var(--ease);
+        }
+        .btn-ask-floating:hover { transform: scale(1.05); }
+        body.dark-mode .chat-drawer { background: #1e1e1e; border-left-color: #333; }
+        body.dark-mode .chat-header { background: #111; border-bottom-color: #333; }
+        body.dark-mode .chat-header h3 { color: #fff; }
+        body.dark-mode .btn-close-chat { color: #fff; }
+        body.dark-mode .chat-input-area { background: #111; border-top-color: #333; }
+        body.dark-mode .chat-input { background: #1e1e1e; color: #fff; border-color: #444; }
+        body.dark-mode .btn-ask-floating { background: #fff; color: #111; }
+
+    </style>
+</head>
+
+<body>
+
+    <!-- ── Top Bar ── -->
+    <div class="top-bar">
+        <a href="{% url 'dashboard' %}" class="back-link">
+            <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M10 12L6 8l4-4" />
+            </svg>
+            <span>Back</span>
+        </a>
+
+        <div class="page-nav">
+            <button id="prev-btn">← Prev</button>
+            <span class="page-info">
+                <input type="number" id="page-input" class="page-input" value="1" min="1"> <span style="opacity: 0.6; margin: 0 4px;">/</span> <span id="page-count">-</span>
+            </span>
+            <button id="next-btn">Next →</button>
+            <div style="width: 1px; height: 20px; background: var(--border-dark); margin: 0 8px;"></div>
+            <button id="bookmark-btn" title="Bookmark this page">🔖 Save</button>
+        </div>
+
+        <div class="top-right" style="gap: 16px; align-items: center;">
+            <div id="zenTimerReader" style="font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 14px; font-weight: 700; color: var(--fg); padding: 4px 12px; border: 2px solid var(--border-dark); border-radius: 999px; display: flex; align-items: center; justify-content: center; letter-spacing: 0.05em; cursor: pointer;" title="Go to Dashboard to edit Timer" onclick="window.location.href='{% url 'dashboard' %}'">
+                25:00
+            </div>
+            <button id="btnZenToggleHeader" style="background: transparent; border: 2px solid var(--border-dark); color: var(--fg); font-family: var(--ff-display); font-weight: 700; text-transform: uppercase; font-size: 12px; padding: 6px 16px; cursor: pointer; border-radius: 999px; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px;">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: translateY(2.5px);"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                Zen Play
+            </button>
+            <div class="lang-toggle" id="langToggle">
+                <button data-lang="normal" id="btnNormal">Normal</button>
+                <button data-lang="english" id="btnEnglish">English</button>
+                <button class="active" data-lang="hindi" id="btnHindi">Hindi</button>
+                <button data-lang="hinglish" id="btnHinglish">Hinglish</button>
+            </div>
+            <button id="btn-theme" title="Toggle Dark Mode"
+                style="margin-left:16px; border-radius:50%; width:38px; height:38px; display:flex; align-items:center; justify-content:center; border:1px solid var(--border-dark); background:transparent; color:var(--fg); cursor:pointer;">
+                <svg id="icon-sun" style="display:none;" width="16" height="16" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="5" />
+                    <line x1="12" y1="1" x2="12" y2="3" />
+                    <line x1="12" y1="21" x2="12" y2="23" />
+                    <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                    <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                    <line x1="1" y1="12" x2="3" y2="12" />
+                    <line x1="21" y1="12" x2="23" y2="12" />
+                    <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                    <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+                <svg id="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- ── Split Screen Reader ── -->
+    <div class="reader-split">
+
+        <!-- Left: PDF Render -->
+        <div class="left-pane">
+            <div class="pdf-container">
+                <canvas id="pdf-render"></canvas>
+            </div>
+        </div>
+
+        <!-- Right: Translation -->
+        <div class="right-pane">
+            <div class="right-header">
+                <span class="right-header-title">Translation</span>
+                <div style="display: flex; gap: 12px; align-items: center;">
+                    <div style="display: flex; border: 1px solid var(--border-dark); border-radius: 999px; overflow: hidden; height: 32px; background: transparent;">
+                        <button id="btn-font-dec" title="Decrease Font"
+                            style="background:transparent; border:none; color:var(--fg); padding: 0 12px; cursor:pointer; font-weight:700; border-right: 1px solid var(--border-dark); font-size:12px;">A-</button>
+                        <button id="btn-font-inc" title="Increase Font"
+                            style="background:transparent; border:none; color:var(--fg); padding: 0 12px; cursor:pointer; font-weight:700; font-size:14px;">A+</button>
+                    </div>
+                    <button id="btnRefresh" class="btn-speak" title="Reload Translation" style="padding: 6px 10px; display: flex; align-items: center; justify-content: center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                            <path d="M3 3v5h5"></path>
+                        </svg>
+                    </button>
+                    <button id="btnSpeak" class="btn-speak" style="display: flex; gap: 6px; align-items: center;">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                            <path d="M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                        </svg>
+                        Play
+                    </button>
+                    <span class="lang-badge" id="langBadge">HINDI</span>
+                </div>
+            </div>
+
+            <div id="loader" class="loader-container">
+                <div class="spinner"></div>
+                <span class="loader-text">Translating…</span>
+            </div>
+
+            <div class="translation-content" id="translated-text"></div>
+        </div>
+    </div>
+
+
+    <!-- Mobile Bottom Bar -->
+    <div class="mobile-bottom-bar">
+        <button id="mobBtnEng" class="active">ENG</button>
+        <button id="mobBtnHin">HIN</button>
+        <button id="mobBtnHinglish">HINGLISH</button>
+    </div>
+
+    <script>
+        // ─── State ───────────────────────────────────────
+        const pdfUrl = '{{ book.pdf_file.url }}';
+        const bookId = {{ book.id }};
+        const csrfToken = '{{ csrf_token }}';
+
+        let pdfDoc = null;
+        let pageNum = parseInt(localStorage.getItem('anuvad_book_' + bookId + '_page')) || 1;
+        let pageIsRendering = false;
+        let pageNumIsPending = null;
+        let currentLang = localStorage.getItem('anuvad_lang') || 'hindi';
+        
+        // ─── Mobile Logic ───
+        const mobBtnEng = document.getElementById('mobBtnEng');
+        const mobBtnHin = document.getElementById('mobBtnHin');
+        const mobBtnHinglish = document.getElementById('mobBtnHinglish');
+        const leftPane = document.querySelector('.left-pane');
+        const rightPane = document.querySelector('.right-pane');
+        const topBar = document.querySelector('.top-bar');
+
+        function setMobileView(view) {
+            // view: 'eng', 'hin', 'hinglish'
+            [mobBtnEng, mobBtnHin, mobBtnHinglish].forEach(b => b?.classList.remove('active'));
+            
+            if (view === 'eng') {
+                mobBtnEng?.classList.add('active');
+                leftPane.classList.remove('mobile-hidden');
+                rightPane.classList.add('mobile-hidden');
+            } else {
+                if (view === 'hin') mobBtnHin?.classList.add('active');
+                if (view === 'hinglish') mobBtnHinglish?.classList.add('active');
+                
+                leftPane.classList.add('mobile-hidden');
+                rightPane.classList.remove('mobile-hidden');
+                
+                // Trigger translation logic
+                if (view === 'hin') {
+                    document.getElementById('btnHindi').click();
+                } else if (view === 'hinglish') {
+                    document.getElementById('btnHinglish').click();
+                }
+            }
+        }
+
+        mobBtnEng?.addEventListener('click', () => setMobileView('eng'));
+        mobBtnHin?.addEventListener('click', () => setMobileView('hin'));
+        mobBtnHinglish?.addEventListener('click', () => setMobileView('hinglish'));
+
+        // Initialize based on window size
+        function initMobileView() {
+            if (window.innerWidth <= 768) {
+                setMobileView('eng'); // Default to showing PDF on mobile initially
+            } else {
+                leftPane.classList.remove('mobile-hidden');
+                rightPane.classList.remove('mobile-hidden');
+            }
+        }
+        initMobileView();
+        window.addEventListener('resize', initMobileView);
+
+        // ─── Auto-Hide Navbar on Scroll ───
+        let lastScrollY = 0;
+        // The rightPane is the scrollable container for translation
+        rightPane.addEventListener('scroll', () => {
+            if (window.innerWidth > 768) return;
+            const currentY = rightPane.scrollTop;
+            if (currentY > lastScrollY && currentY > 50) {
+                // Scroll down -> hide top bar
+                topBar.style.transform = 'translateY(-100%)';
+            } else {
+                // Scroll up -> show top bar
+                topBar.style.transform = 'translateY(0)';
+            }
+            lastScrollY = currentY;
+        }, { passive: true });
+        
+        // PDF Container Scroll
+        const pdfContainer = document.querySelector('.pdf-container');
+        pdfContainer.addEventListener('scroll', () => {
+            if (window.innerWidth > 768) return;
+            const currentY = pdfContainer.scrollTop;
+            if (currentY > lastScrollY && currentY > 50) {
+                topBar.style.transform = 'translateY(-100%)';
+            } else {
+                topBar.style.transform = 'translateY(0)';
+            }
+            lastScrollY = currentY;
+        }, { passive: true });
+
+        let currentPageText = '';  // Store the extracted text for re-translation on toggle
+
+        let currentAudio = new Audio(); // Global audio instance to prevent Safari autoplay block
+
+        const scale = 1.5;
+        const canvas = document.getElementById('pdf-render');
+        const ctx = canvas.getContext('2d');
+
+        // DOM elements
+        const prevBtn = document.getElementById('prev-btn');
+        const nextBtn = document.getElementById('next-btn');
+        const pageInputEl = document.getElementById('page-input');
+        const bookmarkBtn = document.getElementById('bookmark-btn');
+
+        pageInputEl.addEventListener('keyup', (e) => {
+            if (e.key === 'Enter') {
+                let num = parseInt(e.target.value);
+                if (num > 0 && num <= pdfDoc.numPages) {
+                    pageNum = num;
+                    queueRenderPage(pageNum);
+                } else {
+                    e.target.value = pageNum;
+                }
+                e.target.blur(); // Remove focus after jumping
+            }
+        });
+        
+        pageInputEl.addEventListener('change', (e) => {
+            let num = parseInt(e.target.value);
+            if (num > 0 && num <= pdfDoc.numPages) {
+                pageNum = num;
+                queueRenderPage(pageNum);
+            } else {
+                e.target.value = pageNum;
+            }
+        });
+
+        bookmarkBtn.addEventListener('click', () => {
+            localStorage.setItem('anuvad_book_' + bookId + '_page', pageNum);
+            alert('Bookmark saved! You will resume from Page ' + pageNum + ' next time.');
+        });
+        const pageCountEl = document.getElementById('page-count');
+        const loaderEl = document.getElementById('loader');
+        const translatedTextEl = document.getElementById('translated-text');
+        const langBadgeEl = document.getElementById('langBadge');
+        const btnSpeak = document.getElementById('btnSpeak');
+        const btnNormal = document.getElementById('btnNormal');
+        const btnEnglish = document.getElementById('btnEnglish');
+        const btnHindi = document.getElementById('btnHindi');
+        const btnHinglish = document.getElementById('btnHinglish');
+        // ─── Theme Toggle ────────────────────────────────
+        const btnTheme = document.getElementById('btn-theme');
+        const iconSun = document.getElementById('icon-sun');
+        const iconMoon = document.getElementById('icon-moon');
+
+        let isDarkMode = localStorage.getItem('anuvad_theme') === 'dark';
+        if (isDarkMode) {
+            document.body.classList.add('dark-mode');
+            iconSun.style.display = 'block';
+            iconMoon.style.display = 'none';
+        }
+
+        btnTheme.addEventListener('click', () => {
+            document.body.classList.toggle('dark-mode');
+            isDarkMode = document.body.classList.contains('dark-mode');
+            localStorage.setItem('anuvad_theme', isDarkMode ? 'dark' : 'light');
+            if (isDarkMode) {
+                iconSun.style.display = 'block';
+                iconMoon.style.display = 'none';
+            } else {
+                iconSun.style.display = 'none';
+                iconMoon.style.display = 'block';
+            }
+        });
+
+        // ─── Font Adjuster ───────────────────────────────
+        const btnFontInc = document.getElementById('btn-font-inc');
+        const btnFontDec = document.getElementById('btn-font-dec');
+        let currentFontSize = parseInt(localStorage.getItem('anuvad_font_size')) || 17;
+        translatedTextEl.style.fontSize = currentFontSize + 'px';
+
+        btnFontInc.addEventListener('click', () => {
+            if (currentFontSize < 32) {
+                currentFontSize += 2;
+                translatedTextEl.style.fontSize = currentFontSize + 'px';
+                localStorage.setItem('anuvad_font_size', currentFontSize);
+            }
+        });
+
+        btnFontDec.addEventListener('click', () => {
+            if (currentFontSize > 12) {
+                currentFontSize -= 2;
+                translatedTextEl.style.fontSize = currentFontSize + 'px';
+                localStorage.setItem('anuvad_font_size', currentFontSize);
+            }
+        });
+
+        // ─── Document Ready ────────────────────────────────
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+
+        // ─── Language Toggle ─────────────────────────────
+        function stopSpeech() {
+            if (currentAudio && !currentAudio.paused) {
+                currentAudio.pause();
+                currentAudio.currentTime = 0;
+            }
+            if (btnSpeak) btnSpeak.textContent = '🔊 Play';
+        }
+
+        function setLang(lang) {
+            currentLang = lang;
+            localStorage.setItem('anuvad_lang', lang);
+            stopSpeech();
+
+            const readerSplit = document.querySelector('.reader-split');
+
+            btnNormal.classList.remove('active');
+            btnEnglish.classList.remove('active');
+            btnHindi.classList.remove('active');
+            btnHinglish.classList.remove('active');
+
+            if (lang === 'hindi') {
+                btnHindi.classList.add('active');
+                langBadgeEl.textContent = 'HINDI';
+                readerSplit.classList.remove('normal-mode');
+            } else if (lang === 'hinglish') {
+                btnHinglish.classList.add('active');
+                langBadgeEl.textContent = 'HINGLISH';
+                readerSplit.classList.remove('normal-mode');
+            } else if (lang === 'english') {
+                btnEnglish.classList.add('active');
+                langBadgeEl.textContent = 'ENGLISH';
+                readerSplit.classList.remove('normal-mode');
+            } else {
+                btnNormal.classList.add('active');
+                langBadgeEl.textContent = 'NORMAL';
+                readerSplit.classList.add('normal-mode');
+            }
+
+            // Re-translate or show original text if we have text
+            if (currentPageText && lang !== 'normal') {
+                fetchTranslation(bookId, pageNum, currentPageText, currentLang);
+            }
+        }
+
+        // Initialize toggle state
+        setLang(currentLang);
+
+        btnNormal.addEventListener('click', () => setLang('normal'));
+        btnEnglish.addEventListener('click', () => setLang('english'));
+        btnHindi.addEventListener('click', () => setLang('hindi'));
+        btnHinglish.addEventListener('click', () => setLang('hinglish'));
+
+        // ─── Render a PDF Page ───────────────────────────
+        function renderPage(num) {
+            pageIsRendering = true;
+
+            pdfDoc.getPage(num).then(page => {
+                const viewport = page.getViewport({ scale });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                page.render({ canvasContext: ctx, viewport }).promise.then(() => {
+                    pageIsRendering = false;
+                    if (pageNumIsPending !== null) {
+                        renderPage(pageNumIsPending);
+                        pageNumIsPending = null;
+                    }
+                });
+
+                pageInputEl.value = num;
+
+                // Extract text and translate
+                extractAndTranslate(page, num);
+            });
+        }
+
+        // ─── Extract Text (Preserving Line Breaks & Removing Watermarks) ───────
+        function extractAndTranslate(page, num) {
+            translatedTextEl.style.display = 'none';
+            loaderEl.classList.add('show');
+
+            page.getTextContent().then(textContent => {
+                let englishText = '';
+                let lastY = null;
+
+                textContent.items.forEach(item => {
+                    if (lastY !== null && Math.abs(item.transform[5] - lastY) > 5) {
+                        // If Y coordinate changes significantly, it's a new line.
+                        // Add double newline to ensure it breaks as a paragraph in translation.
+                        englishText += '\n\n';
+                    } else if (englishText.length > 0 && !englishText.endsWith(' ') && !englishText.endsWith('\n')) {
+                        // On same line, add a space if not present
+                        englishText += ' ';
+                    }
+                    englishText += item.str;
+                    lastY = item.transform[5];
+                });
+
+                // --- Remove Watermarks (URLs and standalone page numbers) ---
+                const urlRegex = /(?:https?:\/\/|www\.)[a-zA-Z0-9-]+\.[a-zA-Z]{2,}(?:\/[^\s]*)?|[a-zA-Z0-9-]+\.(?:com|org|net|in|co\.in|edu|gov)\b(?:\/[^\s]*)?/gi;
+                let paragraphs = englishText.split('\n\n');
+
+                paragraphs = paragraphs.map(p => {
+                    // Strip URL to check what's left
+                    let textWithoutUrl = p.replace(urlRegex, '').trim();
+                    if (p.toLowerCase().includes('hindustanbooks.com')) {
+                        return '';
+                    }
+                    // If the remaining text is completely empty or just a number (like page '1'), 
+                    // then this entire block is a header/footer watermark.
+                    if (/^\s*\d*\s*$/.test(textWithoutUrl)) {
+                        return '';
+                    }
+                    // Otherwise, just remove the URL but keep the real text
+                    return p.replace(urlRegex, '').trim();
+                });
+
+                // Re-join remaining valid paragraphs
+                currentPageText = paragraphs.filter(p => p.length > 0).join('\n\n').trim();
+
+                if (currentLang !== 'normal') {
+                    fetchTranslation(bookId, num, currentPageText, currentLang);
+                }
+            });
+        }
+
+        // ─── Fetch Translation from Backend ──────────────
+        function fetchTranslation(bookId, pageNumber, englishText, language, forceRefresh = false) {
+            translatedTextEl.style.display = 'none';
+            loaderEl.classList.add('show');
+
+            fetch('/api/translate-page/', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrfToken
+                },
+                body: JSON.stringify({
+                    book_id: bookId,
+                    page_number: pageNumber,
+                    english_text: englishText,
+                    language: language,
+                    force_refresh: forceRefresh
+                })
+            })
+            .then(res => res.json())
+            .then(data => {
+                loaderEl.classList.remove('show');
+                translatedTextEl.style.display = 'block';
+
+                if (data.error) {
+                    translatedTextEl.innerHTML =
+                        '<span class="error-text">Error: ' + data.error + '</span>';
+                } else {
+                    translatedTextEl.textContent = data.hindi_text;
+                }
+            })
+            .catch(err => {
+                loaderEl.classList.remove('show');
+                translatedTextEl.style.display = 'block';
+                translatedTextEl.innerHTML =
+                    '<span class="error-text">Failed to fetch translation.</span>';
+                console.error(err);
+            });
+        }
+
+        // ─── Refresh Button ──────────────────────────────
+        const btnRefresh = document.getElementById('btnRefresh');
+        btnRefresh.addEventListener('click', () => {
+            // Force re-extraction and translation without cache
+            const page = pdfDoc.getPage(pageNum).then(p => {
+                p.getTextContent().then(textContent => {
+                    let extractedText = '';
+                    let lastY = -1;
+                    textContent.items.forEach(item => {
+                        const str = item.str.trim();
+                        if (str.length === 0) return;
+                        if (str.match(/Anuvad\.ai/i)) return;
+                        if (str.match(/^\d+$/) && str === String(pageNum)) return;
+                        if (lastY !== -1 && Math.abs(item.transform[5] - lastY) > 12) {
+                            extractedText += '\n';
+                        } else if (lastY !== -1) {
+                            extractedText += ' ';
+                        }
+                        extractedText += str;
+                        lastY = item.transform[5];
+                    });
+                    currentPageText = extractedText;
+                    fetchTranslation(bookId, pageNum, currentPageText, currentLang, true);
+                });
+            });
+        });
+
+        // ─── Page Navigation ─────────────────────────────
+        function queueRenderPage(num) {
+            stopSpeech();
+            if (pageIsRendering) {
+                pageNumIsPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        prevBtn.addEventListener('click', () => {
+            if (pageNum <= 1) return;
+            pageNum--;
+            queueRenderPage(pageNum);
+        });
+
+        nextBtn.addEventListener('click', () => {
+            if (pageNum >= pdfDoc.numPages) return;
+            const isAuthenticated = "{{ request.user.is_authenticated|yesno:'true,false' }}" === "true";
+            if (!isAuthenticated && pageNum >= 2) {
+                window.authTeaseEnforced = true;
+                const readerSplit = document.querySelector('.reader-split');
+                if (readerSplit) {
+                    readerSplit.style.filter = 'blur(10px)';
+                    readerSplit.style.transition = 'filter 0.5s ease';
+                }
+                if (typeof openAuthPanel === 'function') {
+                    openAuthPanel("SAVE YOUR PROGRESS TO CONTINUE");
+                }
+                return;
+            }
+            pageNum++;
+            queueRenderPage(pageNum);
+        });
+
+        // ─── Load PDF Document ───────────────────────────
+        pdfjsLib.getDocument(pdfUrl).promise.then(doc => {
+            pdfDoc = doc;
+            pageCountEl.textContent = pdfDoc.numPages;
+            renderPage(pageNum);
+        }).catch(err => {
+            document.querySelector('.pdf-container').innerHTML =
+                '<p class="error-text" style="padding: 40px;">Error loading PDF.</p>';
+            console.error(err);
+        });
+
+        // ─── Text to Speech ──────────────────────────────
+        if (btnSpeak) {
+            btnSpeak.addEventListener('click', () => {
+                if (currentAudio && !currentAudio.paused) {
+                    stopSpeech();
+                } else {
+                    const textToRead = translatedTextEl.textContent;
+                    if (!textToRead || !textToRead.trim()) return;
+
+                    btnSpeak.textContent = '⏳ Loading...';
+
+                    // Unlock audio element for Safari
+                    currentAudio.play().catch(() => { });
+
+                    fetch('/api/tts/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': csrfToken
+                        },
+                        body: JSON.stringify({
+                            text: textToRead,
+                            language: currentLang
+                        })
+                    })
+                        .then(res => {
+                            if (res.ok) return res.blob();
+                            throw new Error('TTS API Failed');
+                        })
+                        .then(blob => {
+                            const audioUrl = URL.createObjectURL(blob);
+                            currentAudio.src = audioUrl;
+
+                            currentAudio.play().then(() => {
+                                btnSpeak.textContent = '⏸ Stop';
+                            }).catch(err => {
+                                console.error('Playback error:', err);
+                                btnSpeak.textContent = '🔊 Play';
+                                alert('Audio blocked by browser. Please try again.');
+                            });
+
+                            currentAudio.onended = () => {
+                                btnSpeak.textContent = '🔊 Play';
+                            };
+                        })
+                        .catch(err => {
+                            console.error('Error with Google TTS:', err);
+                            btnSpeak.textContent = '🔊 Play';
+                            alert('Could not generate audio. Please try again.');
+                        });
+                }
+            });
+        }
+
+
+        // ── Ask The Book Logic ──
+        document.addEventListener('DOMContentLoaded', () => {
+            const btnAskBook = document.getElementById('btnAskBook');
+            const chatDrawer = document.getElementById('chatDrawer');
+            const btnCloseChat = document.getElementById('btnCloseChat');
+            const chatInput = document.getElementById('chatInput');
+            const btnSendChat = document.getElementById('btnSendChat');
+            const chatMessages = document.getElementById('chatMessages');
+            
+            if (btnAskBook) {
+            btnAskBook.addEventListener('click', () => {
+                chatDrawer.classList.add('open');
+            });
+            btnCloseChat.addEventListener('click', () => {
+                chatDrawer.classList.remove('open');
+            });
+            
+            async function sendChatMessage() {
+                const q = chatInput.value.trim();
+                if(!q) return;
+                
+                // Add user msg
+                const uMsg = document.createElement('div');
+                uMsg.className = 'msg user';
+                uMsg.textContent = q;
+                chatMessages.appendChild(uMsg);
+                chatInput.value = '';
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                // Add loading
+                const lMsg = document.createElement('div');
+                lMsg.className = 'msg ai';
+                lMsg.textContent = 'Thinking...';
+                chatMessages.appendChild(lMsg);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+                
+                try {
+                    let pageText = "";
+                    const translatedTextEl = document.getElementById('translated-text');
+                    const englishContentEl = document.getElementById('english-content');
+                    if (translatedTextEl && translatedTextEl.innerText) {
+                        pageText += "Translated text:\n" + translatedTextEl.innerText + "\n";
+                    }
+                    if (englishContentEl && englishContentEl.innerText) {
+                        pageText += "Original text:\n" + englishContentEl.innerText;
+                    }
+                    
+                    const res = await fetch('/api/ask-book/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': typeof csrfToken !== 'undefined' ? csrfToken : ''
+                        },
+                        body: JSON.stringify({
+                            question: q,
+                            page_text: pageText
+                        })
+                    });
+                    const data = await res.json();
+                    
+                    chatMessages.removeChild(lMsg);
+                    const aMsg = document.createElement('div');
+                    aMsg.className = 'msg ai';
+                    aMsg.textContent = data.answer || "Sorry, I couldn't understand that.";
+                    chatMessages.appendChild(aMsg);
+                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                } catch(err) {
+                    chatMessages.removeChild(lMsg);
+                    const eMsg = document.createElement('div');
+                    eMsg.className = 'msg ai';
+                    eMsg.style.color = 'red';
+                    eMsg.textContent = "Error connecting to AI Tutor.";
+                    chatMessages.appendChild(eMsg);
+                }
+            }
+            
+            btnSendChat.addEventListener('click', sendChatMessage);
+            chatInput.addEventListener('keypress', (e) => {
+                if(e.key === 'Enter') sendChatMessage();
+            });
+        }
+        });
+
+
+        // --- Zen Timer Sync for Reader ---
+        function initReaderTimer() {
+            const timerEl = document.getElementById('zenTimerReader');
+            if (!timerEl) return;
+            
+            function updateReaderDisplay(secs) {
+                const m = Math.floor(secs / 60).toString().padStart(2, '0');
+                const s = (secs % 60).toString().padStart(2, '0');
+                timerEl.textContent = `${m}:${s}`;
+            }
+
+            setInterval(() => {
+                timerEl.style.display = 'flex';
+                if (localStorage.getItem('zenTimerRunning') === 'true') {
+                    let now = Date.now();
+                    let rem = Math.max(0, Math.round((localStorage.getItem('zenTimerEnd') - now) / 1000));
+                    updateReaderDisplay(rem);
+                } else {
+                    let rem = parseInt(localStorage.getItem('zenTimerRemaining'));
+                    let tot = parseInt(localStorage.getItem('zenTimerTotal')) || 25*60;
+                    updateReaderDisplay(rem || tot);
+                }
+            }, 1000);
+        }
+        initReaderTimer();
+        
+        // --- Keyboard Pagination ---
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowRight') {
+                const btn = document.getElementById('next-btn');
+                if(btn && !btn.disabled) btn.click();
+            } else if (e.key === 'ArrowLeft') {
+                const btn = document.getElementById('prev-btn');
+                if(btn && !btn.disabled) btn.click();
+            }
+        });
+
+    </script>
+    
+    {% include 'reader/auth_panel.html' %}
+
+
+    <!-- Ask The Book Drawer -->
+    <button class="btn-ask-floating" id="btnAskBook">Ask the Book</button>
+    <div class="chat-drawer" id="chatDrawer">
+        <div class="chat-header">
+            <h3>AI Tutor</h3>
+            <button class="btn-close-chat" id="btnCloseChat">&times;</button>
+        </div>
+        <div class="chat-messages" id="chatMessages">
+            <div class="msg ai">Hello! Ask me anything about the page you are currently reading.</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="chatInput" class="chat-input" placeholder="Type a question...">
+            <button id="btnSendChat" class="btn-send">Send</button>
+        </div>
+    </div>
+
+
+    <script>
+        // ─── Persistent Zen Audio Engine ───
+        let zenAudio = null;
+        
+        const btnZenToggle = document.getElementById('btnZenToggleHeader');
+        
+        function updateZenBtnUI() {
+            if (btnZenToggle) {
+                if (zenAudio && !zenAudio.paused) {
+                    btnZenToggle.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: translateY(2.5px);"><rect x="6" y="4" width="4" height="16"></rect><rect x="14" y="4" width="4" height="16"></rect></svg> Zen Pause';
+                    btnZenToggle.style.borderColor = 'var(--fg)';
+                    btnZenToggle.style.color = 'var(--fg)';
+                } else {
+                    btnZenToggle.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="transform: translateY(2.5px);"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg> Zen Play';
+                    btnZenToggle.style.borderColor = 'var(--border-dark)';
+                    btnZenToggle.style.color = 'var(--gray-1)';
+                }
+            }
+        }
+        
+        if (btnZenToggle) {
+            btnZenToggle.style.display = 'block'; // Show it
+            btnZenToggle.addEventListener('click', () => {
+                if (zenAudio && !zenAudio.paused) {
+                    stopZenAudio();
+                } else {
+                    playZenAudio();
+                }
+                updateZenBtnUI();
+            });
+        }
+
+
+        function initZenAudio() {
+            if (!zenAudio) {
+                const url = localStorage.getItem('zenAudioUrl') || "https://actions.google.com/sounds/v1/weather/rain_heavy_loud.ogg";
+                zenAudio = new Audio(url);
+                zenAudio.loop = true;
+                zenAudio.volume = 0.5;
+                
+                const savedTime = localStorage.getItem('zenAudioTime');
+                if (savedTime) {
+                    zenAudio.currentTime = parseFloat(savedTime);
+                }
+                
+                setInterval(() => {
+                    if (zenAudio && !zenAudio.paused) {
+                        localStorage.setItem('zenAudioTime', zenAudio.currentTime);
+                    }
+                }, 1000);
+            }
+        }
+
+        function playZenAudio() {
+            initZenAudio();
+            localStorage.setItem('zenAudioPlaying', 'true');
+            zenAudio.play().then(() => updateZenBtnUI()).catch(e => {
+                console.log("Audio autoplay prevented");
+                updateZenBtnUI();
+            });
+        }
+
+        function stopZenAudio() {
+            if (zenAudio) {
+                zenAudio.pause();
+            }
+            localStorage.setItem('zenAudioPlaying', 'false');
+            updateZenBtnUI();
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (localStorage.getItem('zenAudioPlaying') === 'true') {
+                initZenAudio();
+                const playPromise = zenAudio.play();
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.log("Autoplay prevented, waiting for interaction");
+                        document.addEventListener('click', function resumeAudio() {
+                            if (localStorage.getItem('zenAudioPlaying') === 'true') {
+                                zenAudio.play();
+                            }
+                            document.removeEventListener('click', resumeAudio);
+                        }, { once: true });
+                    });
+                }
+            }
+        });
+
+        // --- Zen Timer Sync for Reader ---
+        function initReaderTimer() {
+            const timerEl = document.getElementById('zenTimerReader');
+            if (!timerEl) return;
+            
+            function updateReaderDisplay(secs) {
+                const m = Math.floor(secs / 60).toString().padStart(2, '0');
+                const s = (secs % 60).toString().padStart(2, '0');
+                timerEl.textContent = `${m}:${s}`;
+            }
+
+            setInterval(() => {
+                timerEl.style.display = 'flex';
+                if (localStorage.getItem('zenTimerRunning') === 'true') {
+                    let now = Date.now();
+                    let rem = Math.max(0, Math.round((localStorage.getItem('zenTimerEnd') - now) / 1000));
+                    updateReaderDisplay(rem);
+                } else {
+                    let rem = parseInt(localStorage.getItem('zenTimerRemaining'));
+                    let tot = parseInt(localStorage.getItem('zenTimerTotal')) || 25*60;
+                    updateReaderDisplay(rem || tot);
+                }
+            }, 1000);
+        }
+        initReaderTimer();
+        
+        // --- Keyboard Pagination ---
+        document.addEventListener('keydown', (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+            if (e.key === 'ArrowRight') {
+                const btn = document.getElementById('next-btn');
+                if(btn && !btn.disabled) btn.click();
+            } else if (e.key === 'ArrowLeft') {
+                const btn = document.getElementById('prev-btn');
+                if(btn && !btn.disabled) btn.click();
+            }
+        });
+
+    </script>
+
+</body>
+
+</html>
