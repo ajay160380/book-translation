@@ -1,31 +1,48 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/ajay160380/book-translation/main/media/books/logo.png" alt="Anuvad Logo" width="150" style="border-radius: 24px; box-shadow: 0 12px 40px rgba(0,0,0,0.6);">
-  
-  <br/><br/>
-  
-  # 📖 Anuvad 
-  
-  **Read Any Book, In Your Own Language**
-  
-  <p align="center">
-    <i>Break the language barrier. Instantly translate and read any book in your native language.</i>
-  </p>
-  
-  <p align="center">
-    <a href="https://book-translation.onrender.com"><b>🌍 View Live Demo</b></a> •
-    <a href="#-key-features"><b>✨ Features</b></a> •
-    <a href="#-how-it-works"><b>⚙️ How it Works</b></a> •
-    <a href="#-quick-start"><b>🚀 Quick Start</b></a>
-  </p>
 
-  [![Python](https://img.shields.io/badge/Python-3.14-blue?style=for-the-badge&logo=python&logoColor=white)](https://python.org)
-  [![Django](https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django&logoColor=white)](https://djangoproject.com)
-  [![Llama 3](https://img.shields.io/badge/AI-Groq_Llama_3-purple?style=for-the-badge&logo=openai&logoColor=white)](https://groq.com)
-  [![Deployed on Render](https://img.shields.io/badge/Live_On-Render-black?style=for-the-badge&logo=render)](https://book-translation.onrender.com)
+# 📖 Anuvad
+
+### 🌍 AI-Powered Book Translation Platform
+
+**Read any book in your own language — instantly.**
+
+*Break language barriers with AI-powered translation while preserving the original meaning, context, and reading experience.*
+
+<p>
+  <a href="https://book-translation.onrender.com">
+    <img src="https://img.shields.io/badge/🌐_Live_Demo-Try_Now-FF6B35?style=for-the-badge" alt="Live Demo">
+  </a>
+  <a href="#-key-features">
+    <img src="https://img.shields.io/badge/✨_Features-Explore-7C3AED?style=for-the-badge" alt="Features">
+  </a>
+  <a href="#-how-it-works">
+    <img src="https://img.shields.io/badge/⚙️_How_It_Works-Guide-0EA5E9?style=for-the-badge" alt="How It Works">
+  </a>
+  <a href="#-quick-start">
+    <img src="https://img.shields.io/badge/🚀_Quick_Start-Get_Started-22C55E?style=for-the-badge" alt="Quick Start">
+  </a>
+</p>
+
+<p>
+  <a href="https://python.org">
+    <img src="https://img.shields.io/badge/Python-3.14-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python">
+  </a>
+  <a href="https://www.djangoproject.com/">
+    <img src="https://img.shields.io/badge/Django-5.x-092E20?style=for-the-badge&logo=django&logoColor=white" alt="Django">
+  </a>
+  <a href="https://groq.com">
+    <img src="https://img.shields.io/badge/Groq-Llama_3-8B5CF6?style=for-the-badge&logo=groq&logoColor=white" alt="Groq Llama 3">
+  </a>
+  <a href="https://book-translation.onrender.com">
+    <img src="https://img.shields.io/badge/Render-Live-46E3B7?style=for-the-badge&logo=render&logoColor=white" alt="Render">
+  </a>
+</p>
+
 </div>
 
-<br/>
+---
 
+> 📚 **Anuvad** enables readers to upload books, translate them into their preferred language using AI, and enjoy a seamless reading experience without language barriers.
 ## 🌟 Why Anuvad?
 For millions of readers in India, English literature holds immense value, but the language barrier often prevents deep immersion. Traditional translation apps strip away the formatting, context, and joy of reading a real book. 
 
@@ -49,16 +66,6 @@ Activate Zen Mode to immerse yourself in reading. Features a built-in Pomodoro t
 
 ### ⚡ Lightning Fast Caching
 Translations are intelligently cached in a Supabase PostgreSQL database. Once a page is translated by the AI, it loads instantly forever.
-
----
-
-## 📸 Screenshots
-
-*(Add your screenshots here by replacing the placeholder links)*
-
-| Dashboard | Reading Mode | Ask AI Chat |
-| :---: | :---: | :---: |
-| <img src="https://via.placeholder.com/400x250/1e1e1e/ffffff?text=Dashboard+Screenshot" alt="Dashboard"> | <img src="https://via.placeholder.com/400x250/1e1e1e/ffffff?text=Reading+Mode" alt="Reader"> | <img src="https://via.placeholder.com/400x250/1e1e1e/ffffff?text=Chat+With+Book" alt="Chat"> |
 
 ---
 
