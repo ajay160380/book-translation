@@ -177,9 +177,14 @@ def profile_view(request):
 @login_required(login_url='/')
 def delete_book(request, book_id):
     if request.method == 'POST':
-        book = get_object_or_404(Book, id=book_id, user=request.user)
-        book.pdf_file.delete(save=False) # delete physical file
-        book.delete() # delete db entry
+        try:
+            book = get_object_or_404(Book, id=book_id, user=request.user)
+            book.pdf_file.delete(save=False) # delete physical file
+            book.delete() # delete db entry
+            ErrorLog.objects.create(action="Delete Book Success", error_message=f"Deleted book {book_id}", user_info=request.user.username)
+        except Exception as e:
+            import traceback
+            ErrorLog.objects.create(action="Delete Book Error", error_message=str(e) + "\n" + traceback.format_exc(), user_info=request.user.username)
     return redirect('dashboard')
 
 def register_user(request):
@@ -566,24 +571,23 @@ def ask_book(request):
             prompt = f"You are a helpful and intelligent reading tutor. The user is reading a book (which might be in Hindi, English, or Hinglish) and is asking a question about the current page.\n\nCurrent Page Text:\n{page_text}\n\nUser Question: {question}\n\nCRITICAL INSTRUCTIONS:\n1. Answer the question concisely and clearly based on the page text.\n2. ALWAYS reply in the exact language the user used in their question! If they ask in 'Hinglish' (e.g., 'hinglish me batao', 'kya ho raha hai'), you MUST reply in Hinglish! If they ask in Hindi, reply in Hindi.\n3. Do NOT say 'the text is in English'. Just explain what is happening."
             
             try:
-                # Try Gemini if key exists
-                api_key = os.getenv('GEMINI_API_KEY')
-                if api_key:
-                    import google.generativeai as genai
-                    genai.configure(api_key=api_key)
-                    model = genai.GenerativeModel('gemini-1.5-flash')
-                    response = model.generate_content(prompt)
-                    return JsonResponse({'answer': response.text})
-            except Exception:
-                pass
+                GROQ_API_KEY = os.getenv('GROQ_API_KEY')
+                if not GROQ_API_KEY:
+                    return JsonResponse({'error': 'GROQ API key not configured'}, status=500)
                 
-            # Fallback to g4f
-            client = G4FClient()
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-            )
-            return JsonResponse({'answer': response.choices[0].message.content})
+                from groq import Groq
+                client = Groq(api_key=GROQ_API_KEY)
+                
+                completion = client.chat.completions.create(
+                    model="llama3-8b-8192",
+                    messages=[{"role": "user", "content": prompt}],
+                    max_tokens=500,
+                    temperature=0.7
+                )
+                
+                answer = completion.choices[0].message.content
+                return JsonResponse({'answer': answer})
+
             
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
