@@ -24,11 +24,13 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/6.0/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-^1@#f_84$5v=-(9w%r69_@iq&kuva88f^!gg9iv68qvgq8g!js'
-
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = os.environ.get('DEBUG', 'False').lower() == 'true'
+
+# SECURITY WARNING: keep the secret key used in production secret!
+SECRET_KEY = os.environ.get('SECRET_KEY', 'django-insecure-dummy-key-for-dev-only-do-not-use-in-prod')
+if not os.environ.get('SECRET_KEY') and not DEBUG:
+    raise ValueError("SECRET_KEY must be set in production")
 
 ALLOWED_HOSTS = ['book-translation.onrender.com', '127.0.0.1', 'localhost']
 CSRF_TRUSTED_ORIGINS = ['https://book-translation.onrender.com']
