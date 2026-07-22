@@ -14,3 +14,4 @@ django-allauth[socialaccount]
 PyJWT
 cryptography
 google-generativeai
+whitenoise>=6.5.0
