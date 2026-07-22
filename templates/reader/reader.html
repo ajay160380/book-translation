@@ -1141,10 +1141,9 @@
             pdfDoc = doc;
             pageCountEl.textContent = pdfDoc.numPages;
             renderPage(pageNum);
-        }).catch(err => {
-            document.querySelector('.pdf-container').innerHTML =
-                '<p class="error-text" style="padding: 40px;">Error loading PDF.</p>';
-            console.error(err);
+        }).catch(function(error) {
+            console.error('PDF JS Error:', error);
+            document.getElementById('pdf-render').innerHTML = '<div style="padding: 40px; text-align: center;"><p class="error-text" style="font-size: 18px; margin-bottom: 12px; font-weight: bold; color: #e74c3c;">Error loading PDF.</p><p style="color: var(--gray-1); font-size: 14px; max-width: 400px; margin: 0 auto;">If this is an old book, Render (your hosting provider) deletes files on every new deployment. Please go back to the dashboard and re-upload the PDF to read it again.</p></div>';
         });
 
         // ─── Text to Speech ──────────────────────────────
