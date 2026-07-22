@@ -1,10 +1,14 @@
 from django.db import models
 from django.contrib.auth.models import User
+from django.core.validators import FileExtensionValidator
 
 class Book(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True, related_name='books')
     title = models.CharField(max_length=255)
-    pdf_file = models.FileField(upload_to='books/')
+    pdf_file = models.FileField(
+        upload_to='books/',
+        validators=[FileExtensionValidator(allowed_extensions=['pdf'])]
+    )
     uploaded_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

@@ -10,7 +10,8 @@ from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from deep_translator import GoogleTranslator
 from .models import Book, TranslationCache, Vocabulary, UserProfile, ErrorLog
-from .forms import BookForm, UserProfileForm
+from .forms import BookForm, UserProfileForm, RegisterForm, PageTranslationForm, AskBookForm, TTSForm
+from django_ratelimit.decorators import ratelimit
 from .hinglish_engine import translate_to_natural_hinglish
 from gtts import gTTS
 from io import BytesIO
@@ -70,8 +71,8 @@ def dashboard(request):
                 ErrorLog.objects.create(action="Dashboard Form Invalid", error_message=error, user_info=request.user.username)
         except Exception as e:
             import traceback
-            error = "Upload crashed: " + str(e)
             ErrorLog.objects.create(action="Dashboard Exception", error_message=traceback.format_exc(), user_info=request.user.username)
+            error = "An unexpected error occurred during upload. Our team has been notified."
     else:
         form = BookForm()
         
@@ -187,33 +188,33 @@ def delete_book(request, book_id):
             ErrorLog.objects.create(action="Delete Book Error", error_message=str(e) + "\n" + traceback.format_exc(), user_info=request.user.username)
     return redirect('dashboard')
 
+@ratelimit(key='ip', rate=os.environ.get('RATE_LIMIT_AUTH_IP', '5/m'), block=False)
+@ratelimit(key='post:username', rate=os.environ.get('RATE_LIMIT_AUTH_ACCOUNT', '10/h'), block=False)
 def register_user(request):
+    if getattr(request, 'limited', False):
+        return render(request, 'reader/landing.html', {'auth_error': 'Too many registration attempts. Please try again later.', 'auth_action': 'register'}, status=429)
+
     if request.method == 'POST':
-        data = request.POST
-        username = data.get('username')
-        email = data.get('email')
-        password = data.get('password')
-        confirm_password = data.get('confirm_password')
-        
-        if not username or not email or not password or not confirm_password:
-            return render(request, 'reader/landing.html', {'auth_error': 'All fields are required', 'auth_action': 'register'})
-            
-        if password != confirm_password:
-            return render(request, 'reader/landing.html', {'auth_error': 'Passwords do not match', 'auth_action': 'register'})
-            
-        if User.objects.filter(username=username).exists():
-            return render(request, 'reader/landing.html', {'auth_error': 'Username already exists', 'auth_action': 'register'})
-            
-        if User.objects.filter(email=email).exists():
-            return render(request, 'reader/landing.html', {'auth_error': 'Email already registered', 'auth_action': 'register'})
-            
-        user = User.objects.create_user(username=username, email=email, password=password)
-        login(request, user)
-        # Force redirect to dashboard
-        return redirect('dashboard')
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = User.objects.create_user(
+                username=form.cleaned_data['username'],
+                email=form.cleaned_data['email'],
+                password=form.cleaned_data['password']
+            )
+            login(request, user)
+            return redirect('dashboard')
+        else:
+            errors = " | ".join([f"{e[0]}" for e in form.errors.values()])
+            return render(request, 'reader/landing.html', {'auth_error': errors, 'auth_action': 'register'})
     return redirect('landing_page')
 
+@ratelimit(key='ip', rate=os.environ.get('RATE_LIMIT_AUTH_IP', '5/m'), block=False)
+@ratelimit(key='post:username', rate=os.environ.get('RATE_LIMIT_AUTH_ACCOUNT', '10/h'), block=False)
 def login_user(request):
+    if getattr(request, 'limited', False):
+        return render(request, 'reader/landing.html', {'auth_error': 'Too many login attempts. Please try again later.', 'auth_action': 'login'}, status=429)
+
     if request.method == 'POST':
         data = request.POST
         username = data.get('username')
@@ -464,15 +465,24 @@ def _translate_to_hinglish(english_text):
     return " ".join(romanized_parts).strip()
 
 
+@ratelimit(key='user', rate=os.environ.get('RATE_LIMIT_USER', '60/m'), block=False)
 def translate_page(request):
+    if getattr(request, 'limited', False):
+        return JsonResponse({'error': 'Too many requests. Please wait a moment.'}, status=429)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            book_id = data.get('book_id')
-            page_number = data.get('page_number')
-            english_text = data.get('english_text', '').strip()
-            language = data.get('language', 'hindi')
-            force_refresh = data.get('force_refresh', False)
+            form = PageTranslationForm(data)
+            
+            if not form.is_valid():
+                return JsonResponse({'error': 'Invalid request data', 'details': form.errors}, status=400)
+                
+            book_id = form.cleaned_data.get('book_id')
+            page_number = form.cleaned_data.get('page_number')
+            english_text = form.cleaned_data.get('english_text', '').strip()
+            language = form.cleaned_data.get('language') or 'hindi'
+            force_refresh = form.cleaned_data.get('force_refresh', False)
 
             if language not in ('hindi', 'hinglish', 'english'):
                 language = 'hindi'
@@ -532,15 +542,21 @@ def translate_page(request):
     return JsonResponse({'error': 'Invalid request method'}, status=405)
 
 
+@ratelimit(key='ip', rate=os.environ.get('RATE_LIMIT_PUBLIC', '30/m'), block=False)
 def text_to_speech(request):
+    if getattr(request, 'limited', False):
+        return JsonResponse({'error': 'Rate limit exceeded. Try again later.'}, status=429)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            text = data.get('text', '')
-            lang = data.get('language', 'hindi')
+            form = TTSForm(data)
             
-            if not text:
-                return JsonResponse({'error': 'No text provided'}, status=400)
+            if not form.is_valid():
+                return JsonResponse({'error': 'Invalid request data', 'details': form.errors}, status=400)
+                
+            text = form.cleaned_data.get('text', '')
+            lang = form.cleaned_data.get('language') or 'hindi'
 
             # gTTS language code
             gtts_lang = 'hi' if lang in ['hindi', 'hinglish'] else 'en'
@@ -558,15 +574,21 @@ def text_to_speech(request):
 
 
 @login_required(login_url='/')
+@ratelimit(key='user', rate=os.environ.get('RATE_LIMIT_USER', '60/m'), block=False)
 def ask_book(request):
+    if getattr(request, 'limited', False):
+        return JsonResponse({'error': 'Too many questions asked. Please wait a moment.'}, status=429)
+
     if request.method == 'POST':
         try:
             data = json.loads(request.body)
-            question = data.get('question', '').strip()
-            page_text = data.get('page_text', '').strip()
+            form = AskBookForm(data)
             
-            if not question:
-                return JsonResponse({'error': 'No question provided'}, status=400)
+            if not form.is_valid():
+                return JsonResponse({'error': 'Invalid request data', 'details': form.errors}, status=400)
+                
+            question = form.cleaned_data.get('question', '').strip()
+            page_text = form.cleaned_data.get('page_text', '').strip()
                 
             prompt = f"You are a helpful and intelligent reading tutor. The user is reading a book (which might be in Hindi, English, or Hinglish) and is asking a question about the current page.\n\nCurrent Page Text:\n{page_text}\n\nUser Question: {question}\n\nCRITICAL INSTRUCTIONS:\n1. Answer the question concisely and clearly based on the page text.\n2. ALWAYS reply in the exact language the user used in their question! If they ask in 'Hinglish' (e.g., 'hinglish me batao', 'kya ho raha hai'), you MUST reply in Hinglish! If they ask in Hindi, reply in Hindi.\n3. Do NOT say 'the text is in English'. Just explain what is happening."
             
