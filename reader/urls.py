@@ -13,4 +13,10 @@ urlpatterns = [
     path('api/ask-book/', views.ask_book, name='ask_book'),
     path('onboarding/', views.onboarding, name='onboarding'),
     path('profile/', views.profile_view, name='profile_view'),
+    # New feature APIs
+    path('api/progress/', views.api_update_progress, name='api_update_progress'),
+    path('api/bookmark/', views.api_toggle_bookmark, name='api_toggle_bookmark'),
+    path('api/bookmarks/<int:book_id>/', views.api_get_bookmarks, name='api_get_bookmarks'),
+    path('api/note/', views.api_save_note, name='api_save_note'),
+    path('api/tags/', views.api_manage_tags, name='api_manage_tags'),
 ]

@@ -1,204 +1,173 @@
-{% extends "reader/dashboard.html" %}
-
+{% extends 'reader/base_dark.html' %}
+{% load static %}
 {% block content %}
+
 <style>
-    .profile-container {
-        padding: 60px 40px;
-        max-width: 900px;
-        margin: 0 auto;
-    }
-    .profile-header {
-        display: flex;
-        align-items: center;
-        gap: 24px;
-        margin-bottom: 48px;
-    }
-    .profile-avatar {
-        width: 80px;
-        height: 80px;
-        border-radius: 50%;
-        background: var(--fg);
-        color: var(--bg);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-family: var(--ff-display);
-        font-size: 32px;
-        font-weight: 700;
-    }
-    .profile-name {
-        font-family: var(--ff-display);
-        font-size: 32px;
-        font-weight: 700;
-        margin-bottom: 4px;
-    }
-    .profile-email {
-        color: var(--gray-1);
-        font-size: 15px;
-    }
-
-    /* Stats Grid */
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 24px;
-        margin-bottom: 48px;
-    }
-    .stat-card {
-        background: var(--bg);
-        border: 1px solid var(--border-dark);
-        border-radius: 12px;
-        padding: 24px;
-        text-align: center;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
-    }
-    body.dark-mode .stat-card {
-        background: #1e1e1e;
-        border-color: #333;
-    }
-    .stat-card:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-    }
-    body.dark-mode .stat-card:hover {
-        box-shadow: 0 10px 20px rgba(0,0,0,0.2);
-    }
-    .stat-value {
-        font-family: var(--ff-display);
-        font-size: 48px;
-        font-weight: 700;
-        margin-bottom: 8px;
-        line-height: 1;
-    }
-    .stat-label {
-        font-size: 12px;
-        text-transform: uppercase;
-        letter-spacing: 0.1em;
-        color: var(--gray-1);
-    }
-
-    /* Form Area */
-    .profile-form-section {
-        background: var(--bg);
-        border: 1px solid var(--border-dark);
-        border-radius: 12px;
-        padding: 40px;
-    }
-    body.dark-mode .profile-form-section {
-        background: #1e1e1e;
-        border-color: #333;
-    }
-    .section-title {
-        font-family: var(--ff-display);
-        font-size: 20px;
-        font-weight: 600;
-        margin-bottom: 24px;
-        padding-bottom: 16px;
-        border-bottom: 1px solid var(--border-dark);
-    }
-    body.dark-mode .section-title {
-        border-color: #333;
+    /* ═══ SIDEBAR LAYOUT ═══ */
+    .dashboard-layout {
+        display: grid; grid-template-columns: 280px 1fr; min-height: 100vh;
+        padding-top: 72px; /* For nav */
     }
     
-    .onboarding-form { text-align: left; }
-    .form-row {
-        display: flex;
-        gap: 24px;
-        margin-bottom: 24px;
+    .sidebar {
+        background: #111113; border-right: 1px solid rgba(255,255,255,0.06);
+        padding: 32px 24px; position: fixed; width: 280px; height: calc(100vh - 72px);
+        overflow-y: auto; display: flex; flex-direction: column; gap: 40px;
     }
-    .form-group { flex: 1; }
-    .form-group label {
-        display: block;
-        font-size: 11px;
-        text-transform: uppercase;
-        letter-spacing: 0.08em;
-        color: var(--gray-2);
-        margin-bottom: 8px;
+    
+    .main-content {
+        margin-left: 280px; padding: 40px 60px 100px;
     }
-    .onboarding-form input,
-    .onboarding-form textarea,
-    .onboarding-form select {
-        width: 100%;
-        padding: 14px 16px;
-        border: 1px solid rgba(30, 30, 30, 0.15);
-        background: transparent;
-        font-family: var(--ff-body);
-        font-size: 15px;
-        color: var(--fg);
-        outline: none;
-        border-radius: 8px;
-        transition: border-color 300ms ease;
+    
+    /* ═══ USER WIDGET ═══ */
+    .user-widget { display: flex; align-items: center; gap: 16px; }
+    .user-avatar {
+        width: 48px; height: 48px; border-radius: 50%;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--ff-display); font-weight: 700; font-size: 20px;
+        color: #fff; box-shadow: 0 0 20px rgba(139,92,246,0.3);
     }
-    body.dark-mode .onboarding-form input,
-    body.dark-mode .onboarding-form textarea,
-    body.dark-mode .onboarding-form select {
-        border-color: #444;
-        background: #121212;
+    .user-info h3 { font-family: var(--ff-display); font-size: 18px; line-height: 1.2; }
+    .user-info p { font-size: 13px; color: #9ca3af; }
+
+    /* ═══ NAV MENU ═══ */
+    .side-nav ul { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+    .side-nav a {
+        display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+        border-radius: 10px; color: #9ca3af; font-size: 15px; font-weight: 600;
+        transition: all 0.2s;
     }
-    .onboarding-form input:focus,
-    .onboarding-form textarea:focus,
-    .onboarding-form select:focus {
-        border-color: var(--fg);
+    .side-nav a:hover, .side-nav a.active {
+        background: rgba(255,255,255,0.04); color: #f0f0f0;
     }
+    .side-nav a.active { color: #8b5cf6; background: rgba(139,92,246,0.1); }
+    .side-nav svg { width: 18px; height: 18px; }
+    
+    /* ═══ PROFILE SPECIFIC ═══ */
+    .page-title {
+        font-family: var(--ff-display); font-size: 32px; font-weight: 700;
+        margin-bottom: 8px; letter-spacing: -0.02em;
+    }
+    .profile-card {
+        background: #161618; border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 20px; padding: 40px; margin-bottom: 40px;
+        display: flex; align-items: center; gap: 32px;
+    }
+    .profile-card .avatar-large {
+        width: 100px; height: 100px; border-radius: 50%;
+        background: linear-gradient(135deg, #8b5cf6, #06b6d4);
+        display: flex; align-items: center; justify-content: center;
+        font-family: var(--ff-display); font-weight: 700; font-size: 40px;
+        color: #fff; box-shadow: 0 0 30px rgba(139,92,246,0.4);
+    }
+    
+    .stats-row {
+        display: grid; grid-template-columns: repeat(3, 1fr); gap: 20px;
+        margin-bottom: 40px;
+    }
+    .stat-card {
+        background: #161618; border: 1px solid rgba(255,255,255,0.06);
+        border-radius: 16px; padding: 24px; text-align: center;
+    }
+    .stat-value { font-family: var(--ff-display); font-size: 36px; font-weight: 700; margin-bottom: 4px; color: #06b6d4; }
+    .stat-label { font-size: 13px; color: #9ca3af; text-transform: uppercase; letter-spacing: 0.05em; font-weight: 700; }
+    
+    .settings-form { background: #161618; border: 1px solid rgba(255,255,255,0.06); border-radius: 20px; padding: 40px; }
+    .form-group { margin-bottom: 24px; }
+    .form-group label { display: block; font-size: 12px; font-weight: 700; text-transform: uppercase; color: #9ca3af; margin-bottom: 8px; }
+    .form-group input, .form-group select, .form-group textarea {
+        width: 100%; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 10px; padding: 14px; color: #fff; font-family: var(--ff-body); outline: none;
+        transition: border-color 0.2s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: #8b5cf6; }
+    .btn-primary {
+        background: #8b5cf6; color: #fff; padding: 14px 28px; border-radius: 10px; border: none;
+        font-weight: 700; cursor: pointer; transition: all 0.3s;
+    }
+    .btn-primary:hover { background: #7c3aed; box-shadow: 0 0 20px rgba(139,92,246,0.4); }
 </style>
 
-<div class="profile-container anim-stagger">
-    <div class="profile-header">
-        <div class="profile-avatar">
-            {{ user.first_name|default:user.username|make_list|first|upper }}
+<div class="dashboard-layout">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="user-widget">
+            <div class="user-avatar">{{ request.user.username|make_list|first|upper }}</div>
+            <div class="user-info">
+                <h3>{{ request.user.username }}</h3>
+                <p>Free Tier</p>
+            </div>
         </div>
-        <div>
-            <div class="profile-name">{{ user.first_name }} {{ user.last_name }}</div>
-            <div class="profile-email">{{ user.email }}</div>
-        </div>
-    </div>
+        
+        <nav class="side-nav">
+            <ul>
+                <li><a href="{% url 'dashboard' %}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg> Dashboard</a></li>
+                <li><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Library</a></li>
+                <li><a href="#"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> Bookmarks</a></li>
+                <li><a href="{% url 'profile_view' %}" class="active"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg> Profile</a></li>
+            </ul>
+        </nav>
+    </aside>
 
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-value">{{ stats.total_books }}</div>
-            <div class="stat-label">Books Uploaded</div>
+    <!-- Main Content -->
+    <main class="main-content">
+        <h1 class="page-title">Your Profile</h1>
+        <p style="color: #9ca3af; margin-bottom: 40px;">Manage your account and reading preferences.</p>
+        
+        <div class="profile-card">
+            <div class="avatar-large">{{ request.user.first_name|default:request.user.username|make_list|first|upper }}</div>
+            <div>
+                <h2 style="font-family: var(--ff-display); font-size: 28px; margin-bottom: 4px;">{{ request.user.first_name }} {{ request.user.last_name }}</h2>
+                <p style="color: #9ca3af; margin-bottom: 12px;">{{ request.user.email }}</p>
+                <div style="display: inline-block; background: rgba(139,92,246,0.1); color: #a78bfa; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; text-transform: uppercase;">Beta Reader</div>
+            </div>
         </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ stats.total_pages_translated }}</div>
-            <div class="stat-label">Pages Translated</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-value">{{ stats.vocab_saved }}</div>
-            <div class="stat-label">Words Saved</div>
-        </div>
-    </div>
 
-    <div class="profile-form-section">
-        <h3 class="section-title">Edit Profile</h3>
-        <form method="POST" class="onboarding-form">
-            {% csrf_token %}
+        <div class="stats-row">
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_books|default:"0" }}</div>
+                <div class="stat-label">Books Uploaded</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value">{{ stats.total_pages_translated|default:"0" }}</div>
+                <div class="stat-label">Pages Translated</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" style="color: #8b5cf6;">{{ stats.vocab_saved|default:"0" }}</div>
+                <div class="stat-label">Bookmarks Saved</div>
+            </div>
+        </div>
+
+        <div class="settings-form">
+            <h3 style="font-family: var(--ff-display); font-size: 20px; margin-bottom: 24px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 16px;">Account Settings</h3>
             
-            <div class="form-row">
-                <div class="form-group">
-                    <label for="{{ form.first_name.id_for_label }}">First Name</label>
-                    {{ form.first_name }}
-                    {% if form.first_name.errors %}<div style="color: #e74c3c; font-size: 12px; margin-top: 4px;">{{ form.first_name.errors }}</div>{% endif %}
+            <form method="POST">
+                {% csrf_token %}
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        {{ form.first_name }}
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        {{ form.last_name }}
+                    </div>
                 </div>
+                
                 <div class="form-group">
-                    <label for="{{ form.last_name.id_for_label }}">Last Name</label>
-                    {{ form.last_name }}
+                    <label>Translation Preference</label>
+                    {{ form.preferred_language }}
                 </div>
-            </div>
-
-            <div class="form-group" style="margin-bottom: 24px;">
-                <label for="{{ form.preferred_language.id_for_label }}">Translation Style Preference</label>
-                {{ form.preferred_language }}
-            </div>
-
-            <div class="form-group" style="margin-bottom: 24px;">
-                <label for="{{ form.bio.id_for_label }}">Bio</label>
-                {{ form.bio }}
-            </div>
-
-            <button type="submit" class="btn-pill btn-pill-filled" style="padding: 12px 32px; font-size: 14px;">
-                Save Changes
-            </button>
-        </form>
-    </div>
+                
+                <div class="form-group">
+                    <label>Bio</label>
+                    {{ form.bio }}
+                </div>
+                
+                <button type="submit" class="btn-primary">Save Changes</button>
+            </form>
+        </div>
+    </main>
 </div>
 {% endblock %}

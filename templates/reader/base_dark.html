@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anuvad.ai Dashboard</title>
+    <link href="https://api.fontshare.com/v2/css?f[]=clash-display@700&f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --ff-display: 'Clash Display', sans-serif;
+            --ff-body: 'Satoshi', sans-serif;
+            --accent: #8b5cf6;
+            --accent-glow: rgba(139, 92, 246, 0.5);
+            --bg-base: #030014;
+        }
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+        
+        body { 
+            font-family: var(--ff-body); 
+            background-color: var(--bg-base);
+            color: #f0f0f0;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+        }
+        
+        /* ── Animated Gradient Mesh Background ── */
+        .ambient-bg {
+            position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+            z-index: -1; overflow: hidden; background: var(--bg-base);
+        }
+        .ambient-bg::before, .ambient-bg::after {
+            content: ""; position: absolute; border-radius: 50%;
+            filter: blur(120px); opacity: 0.4; animation: float 20s infinite alternate ease-in-out;
+        }
+        .ambient-bg::before {
+            width: 600px; height: 600px; background: #4c1d95;
+            top: -200px; left: -100px; animation-delay: 0s;
+        }
+        .ambient-bg::after {
+            width: 500px; height: 500px; background: #0891b2;
+            bottom: -150px; right: -100px; animation-delay: -10s;
+        }
+        @keyframes float {
+            0% { transform: translate(0, 0) scale(1); }
+            100% { transform: translate(100px, 150px) scale(1.2); }
+        }
+
+        a { text-decoration: none; color: inherit; }
+        
+        /* Global Nav for App - Glassmorphism */
+        .app-nav {
+            position: fixed; top: 0; left: 0; right: 0; height: 72px;
+            background: rgba(3, 0, 20, 0.4); backdrop-filter: blur(24px); -webkit-backdrop-filter: blur(24px);
+            border-bottom: 1px solid rgba(255,255,255,0.05); z-index: 1000;
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 32px; box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        .nav-logo {
+            font-family: var(--ff-display); font-size: 24px; font-weight: 700;
+            background: linear-gradient(to right, #a855f7, #06b6d4, #a855f7);
+            background-size: 200% auto;
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            animation: shine 4s linear infinite; letter-spacing: -0.02em;
+        }
+        @keyframes shine { to { background-position: 200% center; } }
+        
+        .nav-right { display: flex; gap: 16px; align-items: center; }
+        .btn-outline {
+            border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.03);
+            color: #f0f0f0; padding: 10px 20px; border-radius: 12px; font-size: 14px;
+            font-weight: 600; cursor: pointer; transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(10px);
+        }
+        .btn-outline:hover { 
+            background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.2);
+            transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 8px; height: 8px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255,255,255,0.2); }
+    </style>
+</head>
+<body>
+    <div class="ambient-bg"></div>
+    
+    <nav class="app-nav">
+        <a href="{% url 'landing_page' %}" class="nav-logo">ANUVAD.AI</a>
+        <div class="nav-right">
+            <a href="{% url 'logout_user' %}" class="btn-outline">Logout</a>
+        </div>
+    </nav>
+    
+    {% block content %}{% endblock %}
+</body>
+</html>

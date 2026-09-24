@@ -9,7 +9,7 @@ from django.http import JsonResponse, HttpResponse
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.models import User
 from deep_translator import GoogleTranslator
-from .models import Book, TranslationCache, Vocabulary, UserProfile, ErrorLog
+from .models import Book, TranslationCache, Vocabulary, UserProfile, ErrorLog, ReadingProgress, Bookmark, BookTag, BookTagAssignment
 from .forms import BookForm, UserProfileForm, RegisterForm, PageTranslationForm, AskBookForm, TTSForm
 from django_ratelimit.decorators import ratelimit
 from .hinglish_engine import translate_to_natural_hinglish
@@ -57,8 +57,10 @@ def dashboard(request):
                     ErrorLog.objects.create(action="Dashboard Upload Duplicate", error_message="Redirecting to existing book", user_info=request.user.username)
                     return redirect('reader_view', book_id=existing_book.id)
                 else:
+                    import random
                     new_book = form.save(commit=False)
                     new_book.user = request.user
+                    new_book.cover_color = random.randint(0, 7)
                     new_book.save()
                     ErrorLog.objects.create(action="Dashboard Upload Success", error_message=f"Book {new_book.id} saved", user_info=request.user.username)
                     return redirect('reader_view', book_id=new_book.id)
@@ -80,7 +82,11 @@ def dashboard(request):
     
     total_books = books.count()
     total_pages_translated = TranslationCache.objects.filter(book__user=request.user).count()
-    recent_book = books.first() if total_books > 0 else None
+    
+    # Reading progress for recent book
+    recent_progress = ReadingProgress.objects.filter(user=request.user).order_by('-last_read_at').first()
+    recent_book = recent_progress.book if recent_progress else (books.first() if total_books > 0 else None)
+    recent_progress_percent = recent_progress.percent if recent_progress else 0
     
     # Translation DNA calculation
     all_translations = TranslationCache.objects.filter(book__user=request.user)
@@ -96,6 +102,25 @@ def dashboard(request):
     latest_summary = latest_translation.summary_text if latest_translation and latest_translation.summary_text else None
     latest_summary_book = latest_translation.book.title if latest_translation else None
 
+    # Reading history (last 10 sessions)
+    reading_history = ReadingProgress.objects.filter(user=request.user).select_related('book').order_by('-last_read_at')[:10]
+    
+    # User tags
+    user_tags = BookTag.objects.filter(user=request.user)
+    
+    # Total bookmarks
+    total_bookmarks = Bookmark.objects.filter(user=request.user).count()
+    
+    # Reading streak (consecutive days)
+    from django.utils import timezone
+    import datetime
+    today = timezone.now().date()
+    streak = 0
+    check_date = today
+    while ReadingProgress.objects.filter(user=request.user, last_read_at__date=check_date).exists():
+        streak += 1
+        check_date -= datetime.timedelta(days=1)
+
     context = {
         'form': form,
         'books': books,
@@ -103,10 +128,15 @@ def dashboard(request):
         'total_books': total_books,
         'total_pages_translated': total_pages_translated,
         'recent_book': recent_book,
+        'recent_progress_percent': recent_progress_percent,
         'hindi_percent': hindi_percent,
         'hinglish_percent': hinglish_percent,
         'latest_summary': latest_summary,
-        'latest_summary_book': latest_summary_book
+        'latest_summary_book': latest_summary_book,
+        'reading_history': reading_history,
+        'user_tags': user_tags,
+        'total_bookmarks': total_bookmarks,
+        'reading_streak': streak,
     }
     
     return render(request, 'reader/dashboard.html', context)
@@ -235,7 +265,16 @@ def logout_user(request):
 
 def reader_view(request, book_id):
     book = get_object_or_404(Book, id=book_id)
-    return render(request, 'reader/reader.html', {'book': book})
+    bookmarks = []
+    progress = None
+    if request.user.is_authenticated:
+        bookmarks = list(Bookmark.objects.filter(user=request.user, book=book).values_list('page_number', flat=True))
+        progress = ReadingProgress.objects.filter(user=request.user, book=book).first()
+    return render(request, 'reader/reader.html', {
+        'book': book,
+        'bookmarks_json': json.dumps(bookmarks),
+        'current_page': progress.current_page if progress else 1,
+    })
 
 import re
 
@@ -647,3 +686,125 @@ def ask_book(request):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
     return JsonResponse({'error': 'Invalid request method'}, status=405)
+
+
+# ══════════════════════════════════════════════════
+# NEW FEATURE APIS
+# ══════════════════════════════════════════════════
+
+@login_required(login_url='/')
+def api_update_progress(request):
+    """Update reading progress for a book."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            book_id = data.get('book_id')
+            current_page = data.get('current_page', 1)
+            total_pages = data.get('total_pages', 0)
+            book = get_object_or_404(Book, id=book_id)
+            progress, created = ReadingProgress.objects.update_or_create(
+                user=request.user,
+                book=book,
+                defaults={'current_page': current_page, 'total_pages': total_pages}
+            )
+            return JsonResponse({'status': 'ok', 'percent': progress.percent})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@login_required(login_url='/')
+def api_toggle_bookmark(request):
+    """Toggle bookmark on a page. Optionally save a note."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            book_id = data.get('book_id')
+            page_number = data.get('page_number')
+            note = data.get('note', '')
+            book = get_object_or_404(Book, id=book_id)
+            existing = Bookmark.objects.filter(user=request.user, book=book, page_number=page_number).first()
+            if existing:
+                if note and note != existing.note:
+                    existing.note = note
+                    existing.save()
+                    return JsonResponse({'status': 'updated', 'bookmarked': True})
+                existing.delete()
+                return JsonResponse({'status': 'removed', 'bookmarked': False})
+            else:
+                Bookmark.objects.create(user=request.user, book=book, page_number=page_number, note=note)
+                return JsonResponse({'status': 'added', 'bookmarked': True})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@login_required(login_url='/')
+def api_get_bookmarks(request, book_id):
+    """Get all bookmarks for a book."""
+    book = get_object_or_404(Book, id=book_id)
+    bookmarks = Bookmark.objects.filter(user=request.user, book=book).values('page_number', 'note', 'created_at')
+    return JsonResponse({'bookmarks': list(bookmarks)})
+
+
+@login_required(login_url='/')
+def api_save_note(request):
+    """Save a quick note on a bookmark."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            book_id = data.get('book_id')
+            page_number = data.get('page_number')
+            note = data.get('note', '')
+            book = get_object_or_404(Book, id=book_id)
+            bookmark, created = Bookmark.objects.update_or_create(
+                user=request.user, book=book, page_number=page_number,
+                defaults={'note': note}
+            )
+            return JsonResponse({'status': 'saved'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
+
+
+@login_required(login_url='/')
+def api_manage_tags(request):
+    """Create/delete tags and assign/remove them from books."""
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)
+            action = data.get('action')  # 'create', 'delete', 'assign', 'unassign'
+            
+            if action == 'create':
+                name = data.get('name', '').strip()
+                color = data.get('color', '#8b5cf6')
+                if not name:
+                    return JsonResponse({'error': 'Tag name required'}, status=400)
+                tag, created = BookTag.objects.get_or_create(
+                    name=name, user=request.user, defaults={'color': color}
+                )
+                return JsonResponse({'status': 'created' if created else 'exists', 'tag_id': tag.id, 'name': tag.name, 'color': tag.color})
+            
+            elif action == 'delete':
+                tag_id = data.get('tag_id')
+                BookTag.objects.filter(id=tag_id, user=request.user).delete()
+                return JsonResponse({'status': 'deleted'})
+            
+            elif action == 'assign':
+                book_id = data.get('book_id')
+                tag_id = data.get('tag_id')
+                book = get_object_or_404(Book, id=book_id, user=request.user)
+                tag = get_object_or_404(BookTag, id=tag_id, user=request.user)
+                BookTagAssignment.objects.get_or_create(book=book, tag=tag)
+                return JsonResponse({'status': 'assigned'})
+            
+            elif action == 'unassign':
+                book_id = data.get('book_id')
+                tag_id = data.get('tag_id')
+                BookTagAssignment.objects.filter(book_id=book_id, tag_id=tag_id).delete()
+                return JsonResponse({'status': 'unassigned'})
+            
+            return JsonResponse({'error': 'Unknown action'}, status=400)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+    return JsonResponse({'error': 'Invalid method'}, status=405)
