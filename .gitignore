@@ -6,3 +6,5 @@ media/
 .DS_Store
 .env
 *.json
+.neon
+node_modules/
