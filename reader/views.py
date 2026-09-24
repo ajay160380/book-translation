@@ -303,30 +303,7 @@ def _translate_conversational_hindi(text):
     # Always clean OCR errors first
     text = _clean_hindi_ocr(text)
     
-    # Try free AI first for fixing/translating
-    try:
-        g4f_client = G4FClient()
-        system_prompt = (
-            "You are an expert Hindi translator and editor. The user will provide text extracted from a PDF. "
-            "Your ONLY job is to output perfectly readable and grammatically flawless Hindi IN DEVANAGARI SCRIPT (हिंदी). "
-            "If the input text is in English, translate it to natural, conversational Hindi written STRICTLY in Devanagari script. "
-            "DO NOT use Latin/English letters for the Hindi translation. DO NOT output Hinglish. "
-            "DO NOT output any conversational padding or notes. ONLY output the final translated text."
-        )
-        completion = g4f_client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": text}
-            ]
-        )
-        result = completion.choices[0].message.content.strip()
-        if result and len(result) > 10:
-            return result
-    except Exception as e:
-        print("g4f Hindi translation failed:", e)
-
-    # Fallback to Groq if key is available
+    # Try Groq first if key is available
     if GROQ_AVAILABLE:
         try:
             client = Groq(api_key=GROQ_API_KEY)
@@ -350,6 +327,29 @@ def _translate_conversational_hindi(text):
         except Exception as e:
             print("Groq translation failed:", e)
 
+    # Fallback to free AI
+    try:
+        g4f_client = G4FClient()
+        system_prompt = (
+            "You are an expert Hindi translator and editor. The user will provide text extracted from a PDF. "
+            "Your ONLY job is to output perfectly readable and grammatically flawless Hindi IN DEVANAGARI SCRIPT (हिंदी). "
+            "If the input text is in English, translate it to natural, conversational Hindi written STRICTLY in Devanagari script. "
+            "DO NOT use Latin/English letters for the Hindi translation. DO NOT output Hinglish. "
+            "DO NOT output any conversational padding or notes. ONLY output the final translated text."
+        )
+        completion = g4f_client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": text}
+            ]
+        )
+        result = completion.choices[0].message.content.strip()
+        if result and len(result) > 10:
+            return result
+    except Exception as e:
+        print("g4f Hindi translation failed:", e)
+
     # Ultimate fallback: use Google Translator
     try:
         return _translate_chunks_hindi(text)
@@ -370,15 +370,31 @@ def _translate_chunks_hindi(text):
 
 def _translate_chunks_english(text):
     """Translate text to English using free AI (g4f) or deep-translator."""
+    prompt = (
+        "You are an expert translator. The user will provide text that might be broken Hindi (OCR errors) or Hinglish. "
+        "Please translate it into highly readable, fluent, and conversational English. "
+        "If the input is broken, guess the intended meaning and provide the correct English translation. "
+        "Do not add any notes, just output the English text."
+    )
+    
+    if GROQ_AVAILABLE:
+        try:
+            client = Groq(api_key=GROQ_API_KEY)
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": text}
+                ],
+                temperature=0.1
+            )
+            return completion.choices[0].message.content.strip()
+        except Exception as e:
+            print("Groq English translation failed:", e)
+            
     # Try free AI first
     try:
         g4f_client = G4FClient()
-        prompt = (
-            "You are an expert translator. The user will provide text that might be broken Hindi (OCR errors) or Hinglish. "
-            "Please translate it into highly readable, fluent, and conversational English. "
-            "If the input is broken, guess the intended meaning and provide the correct English translation. "
-            "Do not add any notes, just output the English text."
-        )
         completion = g4f_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt + "\n\nText:\n" + text}]
@@ -405,15 +421,35 @@ def _translate_to_hinglish(english_text):
     Translate text to conversational Hinglish (romanized Hindi) using free AI (g4f)
     or fallback to Google Translate.
     """
+    prompt = (
+        "You are a native Indian speaker. Translate or rewrite the following text into simple, easy-to-read 'Hinglish' (Hindi written in English alphabet). "
+        "Make it highly conversational, exactly how young Indians text on WhatsApp (e.g., use 'kya', 'hai', 'main', 'kyun'). "
+        "If the input is broken Hindi, figure out the meaning and rewrite it properly in Hinglish. "
+        "DO NOT use pure English. DO NOT use Devanagari script. DO NOT add any notes, explanations, or quotes. Output ONLY the Hinglish text."
+    )
+    
+    if GROQ_AVAILABLE:
+        try:
+            client = Groq(api_key=GROQ_API_KEY)
+            completion = client.chat.completions.create(
+                model="llama-3.3-70b-versatile",
+                messages=[
+                    {"role": "system", "content": prompt},
+                    {"role": "user", "content": english_text}
+                ],
+                temperature=0.1
+            )
+            result = completion.choices[0].message.content.strip()
+            if result and len(result) > 10:
+                if result.startswith('"') and result.endswith('"'):
+                    result = result[1:-1]
+                return result
+        except Exception as e:
+            print("Groq Hinglish failed:", e)
+
     # Try free AI first for natural conversational Hinglish
     try:
         g4f_client = G4FClient()
-        prompt = (
-            "You are a native Indian speaker. Translate or rewrite the following text into simple, easy-to-read 'Hinglish' (Hindi written in English alphabet). "
-            "Make it highly conversational, exactly how young Indians text on WhatsApp (e.g., use 'kya', 'hai', 'main', 'kyun'). "
-            "If the input is broken Hindi, figure out the meaning and rewrite it properly in Hinglish. "
-            "DO NOT use pure English. DO NOT use Devanagari script. DO NOT add any notes, explanations, or quotes. Output ONLY the Hinglish text."
-        )
         completion = g4f_client.chat.completions.create(
             model="gpt-4o-mini",
             messages=[{"role": "user", "content": prompt + "\n\nText:\n" + english_text}]
