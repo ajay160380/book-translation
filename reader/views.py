@@ -354,14 +354,31 @@ def _translate_conversational_hindi(text):
                 "DO NOT output any conversational padding or notes. ONLY output the final corrected/translated text."
             )
             
-            completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": text}
-                ],
-                temperature=0.1
-            )
+            try:
+                model_name = "qwen/qwen3.8-27b"
+                completion = client.chat.completions.create(
+                    model=model_name,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": text}
+                    ],
+                    temperature=0.1
+                )
+            except Exception as e:
+                if 'does not exist' in str(e).lower() or '404' in str(e):
+                    # Fallback to alternative model if llama is unavailable
+                    model_name = "qwen/qwen3.8-27b"
+                    completion = client.chat.completions.create(
+                        model=model_name,
+                        messages=[
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": text}
+                        ],
+                        temperature=0.1
+                    )
+                else:
+                    raise e
+                    
             return completion.choices[0].message.content.strip()
         except Exception as e:
             print("Groq translation failed:", e)
@@ -420,7 +437,7 @@ def _translate_chunks_english(text):
         try:
             client = Groq(api_key=GROQ_API_KEY)
             completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": text}
@@ -471,7 +488,7 @@ def _translate_to_hinglish(english_text):
         try:
             client = Groq(api_key=GROQ_API_KEY)
             completion = client.chat.completions.create(
-                model="llama-3.3-70b-versatile",
+                model="qwen/qwen3.8-27b",
                 messages=[
                     {"role": "system", "content": prompt},
                     {"role": "user", "content": english_text}
