@@ -187,4 +187,5 @@ if os.environ.get('AWS_ACCESS_KEY_ID'):
     AWS_S3_REGION_NAME = os.environ.get('AWS_REGION')
     AWS_S3_ADDRESSING_STYLE = 'path'
     AWS_S3_FILE_OVERWRITE = False
+    AWS_QUERYSTRING_AUTH = False
     AWS_DEFAULT_ACL = 'public-read'
