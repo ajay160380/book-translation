@@ -695,7 +695,7 @@ def ask_book(request):
             client = Groq(api_key=GROQ_API_KEY)
             
             completion = client.chat.completions.create(
-                model="llama3-8b-8192",
+                model=os.getenv("GROQ_MODEL", "qwen/qwen3.8-27b"),
                 messages=[{"role": "user", "content": prompt}],
                 max_tokens=500,
                 temperature=0.7
