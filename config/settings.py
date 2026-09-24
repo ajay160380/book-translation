@@ -175,3 +175,16 @@ ACCOUNT_EMAIL_REQUIRED = True
 ACCOUNT_EMAIL_VERIFICATION = 'none'
 SOCIALACCOUNT_EMAIL_AUTHENTICATION = True
 SOCIALACCOUNT_EMAIL_AUTHENTICATION_AUTO_CONNECT = True
+
+# Neon Object Storage / AWS S3 Config
+if os.environ.get('AWS_ACCESS_KEY_ID'):
+    INSTALLED_APPS.append('storages')
+    DEFAULT_FILE_STORAGE = 'storages.backends.s3boto3.S3Boto3Storage'
+    AWS_ACCESS_KEY_ID = os.environ.get('AWS_ACCESS_KEY_ID')
+    AWS_SECRET_ACCESS_KEY = os.environ.get('AWS_SECRET_ACCESS_KEY')
+    AWS_STORAGE_BUCKET_NAME = 'media'
+    AWS_S3_ENDPOINT_URL = os.environ.get('AWS_ENDPOINT_URL_S3')
+    AWS_S3_REGION_NAME = os.environ.get('AWS_REGION')
+    AWS_S3_ADDRESSING_STYLE = 'path'
+    AWS_S3_FILE_OVERWRITE = False
+    AWS_DEFAULT_ACL = 'public-read'

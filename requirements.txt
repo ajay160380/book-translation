@@ -18,3 +18,5 @@ google-generativeai
 whitenoise>=6.5.0
 django-ratelimit>=4.1.0
 filetype>=1.2.0
+django-storages
+boto3
