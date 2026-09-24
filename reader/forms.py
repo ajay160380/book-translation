@@ -54,13 +54,13 @@ class RegisterForm(forms.Form):
 class PageTranslationForm(forms.Form):
     book_id = forms.IntegerField(required=True)
     page_number = forms.IntegerField(required=True)
-    english_text = forms.CharField(required=True, max_length=10000)
+    english_text = forms.CharField(required=False, allow_empty=True, max_length=100000)
     language = forms.ChoiceField(choices=[('hindi', 'Hindi'), ('hinglish', 'Hinglish'), ('english', 'English')], required=False)
     force_refresh = forms.BooleanField(required=False)
 
 class AskBookForm(forms.Form):
     question = forms.CharField(required=True, max_length=1000)
-    page_text = forms.CharField(required=True, max_length=10000)
+    page_text = forms.CharField(required=False, allow_empty=True, max_length=100000)
 
 class TTSForm(forms.Form):
     text = forms.CharField(required=True, max_length=5000)

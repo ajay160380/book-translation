@@ -562,8 +562,11 @@ def translate_page(request):
             if language not in ('hindi', 'hinglish', 'english'):
                 language = 'hindi'
 
-            if not all([book_id, page_number, english_text]):
+            if book_id is None or page_number is None:
                 return JsonResponse({'error': 'Missing required fields'}, status=400)
+                
+            if not english_text:
+                return JsonResponse({'hindi_text': '', 'language': language})
 
             book = get_object_or_404(Book, id=book_id)
 
